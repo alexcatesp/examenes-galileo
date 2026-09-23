@@ -1,0 +1,146 @@
+{
+ "paquete": {
+  "version": 1,
+  "id": "COMPAT-RA1",
+  "meta": {
+   "ra": "RA1",
+   "grupo": "1DAM",
+   "siglas": "LMSG",
+   "cursoEscolar": "2026-27",
+   "convocatoria": "ev_continua"
+  },
+  "sal": "QfOtmxE46csOrJ3KMOtq2Q==",
+  "iter": 1000,
+  "entradas": [
+   {
+    "loc": "4f60a1e15f7dfa75",
+    "iv": "tQYPXV6rE17s0iiC",
+    "clave": "IHfUxBSgWqWWnp4ja4PrAGhUQSJa5u+4/ifR/8FSbZGxKVxM3yDetKLtwYz9VdHG"
+   },
+   {
+    "loc": "717182bc392d6720",
+    "iv": "M2oPrCZXWXei04lu",
+    "clave": "E5Zpd2mKv8hlv5qTzFGoHPwp0PbqIwWwH3mU3Giwk3PAcPXlXZqvoBCtrm9U9aX/"
+   },
+   {
+    "loc": "d05eacc07c0730b4",
+    "iv": "1jpM0RfZQJxFKiB/",
+    "clave": "y3LkqzoiM8QXQDAsNWkM3OoueUFRumdAMvgDO+4E7goYAW8Eq+jHDszihMwL0q4s"
+   }
+  ],
+  "iv": "QveJpd05i9T796ut",
+  "datos": "pTUogOzz1b40ldcI24qAzRNU5gUYEEslrNKhThHDJ4TyeGinuSuTUrkpRoUz20k3cUbCFaSOW8CptfNZBEQHZH3Kto9Z2oQFbaWV4V+UqPRimqF1nvLEmQhGFITWV2KReCVqu1wOZl7ppSYfbSdSDPkjn8rTilCFgkzhryG5PZYMpPiW+ARxbp1x3c6WIt3sv6n/60SGBcSM+Klmb5DfF8oZygfPtV9ok7lgTtaew9VVM5B8YPds2WMa2r+kJNXjdlcmOHS3Hms56E1jUAJYaz5EnKltdh9K4/dW3Y8fUdBm7k01JWUIqyyBJvuMoRVODODKvoJr3MEOrEZNdF2cBuVE8bCrmDdMkXwjPvt2WhEUOSJGh6om042uIR5u5ObnQmbGJispt8s1J1yRQ9LNb1DXvgrLXEWicZ6Uq0YL70MZaa0a8ueFo3IeltPniGJp7ejP/HgJ5Mmvzh+XCRPvLWEnq6I9LJeBMeKx7Dvk0CTxBFzpKgnzX4ko66M13XRTB3fO1snQZOHTR9C+1qLnZy+H1BUoMM9qeY7882ZMl68UC3N0vYoBlmhI6oDLWObzmPYxCDP+yvmMoNpz8x2Xg4ip/h3RSjfQUEb9SRVRpwA9oeVBEdZZAgKitQbcLg7qUNX0IdUSW7XxFxRLbxbEYXEKEv0FNaVkJEX//DOVvOnM6sZjsjolTKxCjLw81DR3De2+78D5MO6fioO41TBt5UechhHn3R3VXDRiIkJE9z/2lxEF/1THXs/uwzwaNF1M4xp5vdyX4oIWmKHcJ5THRsKO0l8InTaFBvAKWPv2P2ccdhBHq3UeCe018D+6XoXoPdOSwuS+U8GVwHQYFTNnkJjALucjnqDLGtVPrbmdKD149SEPzpjtJ1dyZ1vqQblvgLb835XCWYGIzw5WvzJ5BDAf90f/MF4wKYQz0K/svNRcVgX9z6eKJlr0YSWW0KGUlsmow0NEEJERLJZYhXcYCormG1u/50VvA/+WdJinHoHq847hqntptSlq2HdBSoQJJSZG+MZco4i0cSkgLFZdWBnAEDaahEeDVh4WeyfKWs9UcMCeUnkcHsjoROGzuTla3q2L7cm16VjH7KPUSEvLLyqsBU6SQVHqA9exE1aipGO2iC1IS0+uJg7GEliYrF+EakgQ6qX4MJTmWtu3qAN5RWOd1RboSkcYtYQfdWU2m+paSjg2HytPnT8UCASpuxaoaJCO1Ch4QL1bG6eiXpqHp1MVo2zc2GKPIc6UFwleNMmXygYjJeFhlnlTSnf8Gq1VlxdkFNAImOEp9cgBjg+1ZgwEpy9FVXn25/IDBExD6pX/okyuw/IfxuvWRrhfc0ceppeBZT+hKVtqV8PNgaXBQ+jK4Il7HCpS2ZOMZz3rQ5rpvty/uuIt4wmi3iKHey6KCbxrAQByv5iAFwlh42cyQ57ZQiE51XBZ0JjDheuQBDXagt8ESBfOjpgI9cfs1NOjD7mkpF1wWdwrdhwfckPfk/vnC/YqDL7m2R9DG6o2oDVSCG5X5QQ9CVwSAUkzgqTvJE4lntJSPno+/j0adWMvb29ZM1/0RjyyBI92hLfCVCbFZns9m0V6XJXGHEPrLj72/9nLqHqUlNcRV/5B58mLnQuun/sl13JWd7o8vuU5s8nwzbmhEaGG0EQbXmL/MPLNiUMdG4Yz24hc9egrjU6d0mi3q8lNaSHC18IqZweyOCyn"
+ },
+ "codigos": [
+  "B0VJ-F9JD-PNRH",
+  "M683-1MA8-PS2P",
+  "VE15-EHFS-39TW"
+ ],
+ "contrasena": "profe123",
+ "examen": {
+  "id": "COMPAT-RA1",
+  "titulo": "Examen RA1",
+  "ciclo": "DAM",
+  "curso": "1",
+  "modulo": "Lenguajes de marcas (0373)",
+  "codigoModulo": "0373",
+  "raTexto": "Reconoce las características de lenguajes de marcas.",
+  "duracion": 30,
+  "ra": "RA1",
+  "grupo": "1DAM",
+  "siglas": "LMSG",
+  "cursoEscolar": "2026-27",
+  "convocatoria": "ev_continua",
+  "partes": [
+   {
+    "id": "A",
+    "titulo": "Parte A — Básico",
+    "preguntas": [
+     {
+      "id": "A1",
+      "item": null,
+      "nivel": "Básico",
+      "ce": [
+       "a"
+      ],
+      "tipo": "unica",
+      "lenguaje": null,
+      "enunciado": "¿Qué es **XML**?",
+      "opciones": [
+       {
+        "letra": "a",
+        "texto": "Un lenguaje"
+       },
+       {
+        "letra": "b",
+        "texto": "Una BD"
+       },
+       {
+        "letra": "c",
+        "texto": "Un SO"
+       }
+      ]
+     },
+     {
+      "id": "A2",
+      "item": null,
+      "nivel": "Básico",
+      "ce": [
+       "b"
+      ],
+      "tipo": "multiple",
+      "lenguaje": null,
+      "enunciado": "Marca todas las correctas",
+      "opciones": [
+       {
+        "letra": "a",
+        "texto": "x"
+       },
+       {
+        "letra": "b",
+        "texto": "y"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "B",
+    "titulo": "Parte B — Intermedio",
+    "preguntas": [
+     {
+      "id": "B1",
+      "item": "RA1-INT-I-01",
+      "nivel": "Intermedio",
+      "ce": [
+       "c",
+       "d"
+      ],
+      "tipo": "codigo",
+      "lenguaje": "xml",
+      "enunciado": "Escribe un XML",
+      "opciones": []
+     },
+     {
+      "id": "B2",
+      "item": null,
+      "nivel": "Intermedio",
+      "ce": [
+       "e"
+      ],
+      "tipo": "texto",
+      "lenguaje": null,
+      "enunciado": "Explica ñandú",
+      "opciones": []
+     }
+    ]
+   }
+  ],
+  "desbloqueo": {
+   "sal": "LTMsflIr1YnuKccrLkzBeg==",
+   "iter": 100000,
+   "hash": "QoOCdD+g+hZS825+hgn0RZyngBG0YQMzSRoP28r1O8w="
+  },
+  "generado": "2026-09-23"
+ }
+}

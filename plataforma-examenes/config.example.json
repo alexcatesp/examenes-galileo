@@ -1,0 +1,10 @@
+{
+  "_instrucciones": [
+    "Copia este fichero como config.json y rellénalo con lo tuyo.",
+    "urlPublica: la dirección de TU GitHub Pages, con la barra final.",
+    "receptor: la URL /exec de TU Apps Script (ver apps-script/DESPLIEGUE.md).",
+    "Si dejas el receptor vacío, los alumnos solo entregan descargando el .md."
+  ],
+  "urlPublica": "https://TU-USUARIO.github.io/TU-REPOSITORIO/",
+  "receptor": ""
+}

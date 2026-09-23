@@ -1,0 +1,11 @@
+{
+  "_comentario": [
+    "Siglas con las que se nombran los ficheros de entrega y las carpetas de Drive:",
+    "  <curso escolar>/<grupo>/<SIGLAS>/<RA>/<convocatoria>/<grupo>_<SIGLAS>_<RA>_<codigo>.md",
+    "La clave es el codigo del modulo tal como aparece en la ruta de modulos/.",
+    "Anade aqui cada modulo nuevo segun lo vayas impartiendo; si falta, el script lo pregunta."
+  ],
+  "0373": "LMSG",
+  "0485": "PROG",
+  "CL7021": "IADW"
+}
