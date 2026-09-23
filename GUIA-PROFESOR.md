@@ -200,15 +200,23 @@ falta saber programar, pero sí perderle el miedo a la terminal.
 
 ### 5.1 Tu copia del proyecto
 
-El código de la plataforma (los scripts y la aplicación) vive en un repositorio privado, junto
-con el material de los módulos. **Pídemelo y te doy acceso**, o te paso la carpeta
-`plataforma-examenes` suelta, que es autocontenida.
-
-Una vez la tengas, entra en ella e instala lo que necesita el script:
+El código es **software libre** (GPL v3): clónalo, móntalo y cámbialo a tu gusto.
 
 ```bash
+git clone https://github.com/alexcatesp/examenes-galileo.git
+cd examenes-galileo/plataforma-examenes
+cp config.example.json config.json
 pip install -r scripts/requirements.txt
 ```
+
+> **Edita `config.json` antes de nada.** Ahí van **tu** dirección de Pages y **tu** receptor.
+> Si dejas los de otro, las entregas de tus alumnos acabarían en el Drive de otra persona.
+
+Dos detalles de lo que te descargas: no lleva ningún examen en claro (los de
+`examenes/` están cifrados y solo se abren con sus códigos), y la carpeta
+`scripts/tests/fixtures` viene vacía a propósito, porque son exámenes modelo con sus
+soluciones. Por eso, al pasar los tests, verás unos cuantos «saltados»; si quieres
+comprobar que el conversor entiende tus exámenes, copia los tuyos ahí.
 
 ### 5.2 El sitio web (GitHub Pages)
 
@@ -355,6 +363,17 @@ Cada código se cierra al entregar, así que usa uno distinto en cada prueba:
 Prueba a salir de la pantalla completa con Esc: verás el bloqueo y podrás desbloquearlo con
 `demo-profe`. Y fíjate en que, al entregar, la pantalla insiste en Teams y no menciona nada
 más: es a propósito, para que el alumno no se crea que ya ha terminado.
+
+---
+
+## 10. Licencia
+
+Copyright © 2026 Alejandro Catalá Espí (IES Galileo).
+
+Software libre bajo la **Licencia Pública General de GNU, versión 3**: puedes usarla,
+estudiarla, modificarla y compartirla. Si distribuyes tu versión, tiene que ir también con
+GPL, para que las mejoras sigan siendo de todos. Se distribuye **sin ninguna garantía**; el
+texto completo está en [`plataforma-examenes/LICENSE`](plataforma-examenes/LICENSE).
 
 ---
 
