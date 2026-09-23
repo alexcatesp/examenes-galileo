@@ -71,6 +71,28 @@ Las preguntas y las opciones **se barajan** para cada alumno, así que mirar la 
 al lado no sirve. El fichero de respuestas sale siempre en el orden original, para que
 corrijas todos igual.
 
+### ¿Cuánto vale cada pregunta?
+
+Es la primera pregunta que hace un alumno, y la plataforma **la responde sola**: cada pregunta
+lleva escrito lo que suma, y antes de empezar ve el reparto por partes.
+
+No hay que inventarse los puntos. Salen de deshacer la fórmula de la rúbrica: si la nota de un
+criterio es `0,5·Básico + 0,2·Intermedio + 0,3·Avanzado`, y cada banda es la media de sus
+ejercicios, entonces una pregunta aporta
+
+```
+puntos = 10 × peso de la banda × Σ (peso del CE ÷ 100) ÷ nº de preguntas de ese CE y banda
+```
+
+Si el examen cubre todos los criterios del RA en los tres niveles, **suma 10 exacto**. En el
+examen del RA1 de Lenguajes de marcas, por ejemplo, la Parte A vale 5 puntos, la B vale 2 y la
+C vale 3. Dentro de cada parte no todas valen igual: una pregunta del criterio *a* (que pesa un
+14 %) vale 0,70 y una del *b* (10 %) vale 0,50.
+
+Lo calcula el script al preparar el examen, a partir del `calificaciones.config.json` del
+módulo. Si el examen no cubre todos los criterios, te avisa de que el máximo alcanzable no es
+10, que es una información que conviene tener antes de imprimir nada.
+
 ---
 
 ## 3. Qué recibes tú
