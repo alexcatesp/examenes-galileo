@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState, type KeyboardEvent as TeclaReact } from 'react';
 import { LETRAS, type PreguntaVista } from '../lib/barajar';
 import { formatear } from '../lib/cripto';
 import { formatoPuntos, respondida } from '../lib/entrega';
@@ -7,6 +7,17 @@ import type { Estado, Examen, Respuesta } from '../lib/tipos';
 import { EditorCodigo } from './EditorCodigo';
 
 const NIVEL_CLASE: Record<string, string> = { Básico: 'basico', Intermedio: 'intermedio', Avanzado: 'avanzado' };
+
+/** Tab en un textarea inserta dos espacios (sangrar XML/HTML) en vez de saltar al siguiente campo.
+ *  Con Mayús+Tab o Ctrl/Alt/Meta se conserva el comportamiento normal para poder salir con el teclado. */
+function sangrarConTab(e: TeclaReact<HTMLTextAreaElement>, alCambiar: (v: string) => void) {
+  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return;
+  e.preventDefault();
+  const t = e.currentTarget;
+  const { selectionStart: a, selectionEnd: b, value } = t;
+  alCambiar(value.slice(0, a) + '  ' + value.slice(b));
+  requestAnimationFrame(() => t.setSelectionRange(a + 2, a + 2));
+}
 
 export function formatoReloj(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -197,6 +208,7 @@ function ZonaRespuesta({ pregunta: p, respuesta, alResponder }: {
           spellCheck={false}
           value={respuesta?.explicacion ?? ''}
           onChange={(e) => alResponder({ valor: typeof respuesta?.valor === 'string' ? respuesta.valor : '', explicacion: e.target.value })}
+          onKeyDown={(e) => sangrarConTab(e, (v) => alResponder({ valor: typeof respuesta?.valor === 'string' ? respuesta.valor : '', explicacion: v }))}
         />
       </div>
     );
@@ -211,6 +223,7 @@ function ZonaRespuesta({ pregunta: p, respuesta, alResponder }: {
         autoFocus
         value={typeof respuesta?.valor === 'string' ? respuesta.valor : ''}
         onChange={(e) => alResponder({ valor: e.target.value })}
+        onKeyDown={(e) => sangrarConTab(e, (v) => alResponder({ valor: v }))}
       />
     </div>
   );
