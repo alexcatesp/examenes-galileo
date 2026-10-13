@@ -19,6 +19,10 @@ function sangrarConTab(e: TeclaReact<HTMLTextAreaElement>, alCambiar: (v: string
   requestAnimationFrame(() => t.setSelectionRange(a + 2, a + 2));
 }
 
+export function horaDe(ms: number): string {
+  return new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
 export function formatoReloj(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(s / 3600);
@@ -27,10 +31,15 @@ export function formatoReloj(ms: number): string {
   return `${h ? `${h}:` : ''}${pad(m)}:${pad(s % 60)}`;
 }
 
-function Reloj({ restante }: { restante: number }) {
+function Reloj({ restante, hasta }: { restante: number; hasta?: number }) {
   const min = restante / 60000;
   const clase = min <= 5 ? 'reloj rojo' : min <= 10 ? 'reloj ambar' : 'reloj';
-  return <div className={clase} aria-label="Tiempo restante">{formatoReloj(restante)}</div>;
+  return (
+    <div className={clase} aria-label="Tiempo restante">
+      {formatoReloj(restante)}
+      {hasta && <small className="reloj-fin">hasta las {horaDe(hasta)}</small>}
+    </div>
+  );
 }
 
 interface Props {
@@ -78,7 +87,7 @@ export function VistaExamen({ examen, vista, estado, restante, alResponder, alMo
           <span className="codigo-alumno">Código {formatear(estado.codigo)}</span>
         </div>
         <div className="cabecera-aviso">No escribas tu nombre en ninguna respuesta</div>
-        <Reloj restante={restante} />
+        <Reloj restante={restante} hasta={examen.fin} />
       </header>
 
       <nav className="indice" aria-label="Preguntas">

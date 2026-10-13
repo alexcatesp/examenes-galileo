@@ -260,6 +260,23 @@ python scripts/preparar_examen.py cifrar DAM-0373-RA1 --codigos 20
 python scripts/preparar_examen.py verificar DAM-0373-RA1 K7FM-2QXR-9TPA
 ```
 
+**Hora de inicio y de fin (opcional).** Si empiezas tarde, el reloj de cada alumno no debe marcar
+«75 min» sino lo que queda hasta la hora de fin del examen. Fíjala al cifrar (hora local de tu equipo):
+
+```bash
+python scripts/preparar_examen.py cifrar DAM-0373-RA1 --codigos 20 --inicio "2026-10-20 08:30" --fin "2026-10-20 10:10"
+```
+
+El reloj cuenta hasta las 10:10 aunque un alumno entre a las 8:45, y la pantalla de instrucciones y la
+cabecera lo dicen («Termina a las 10:10», «hasta las 10:10»). Sin `--inicio`/`--fin`, el reloj cuenta
+`--duracion` minutos desde que cada alumno pulsa «Empezar». Si das `--inicio` y `--fin` sin `--duracion`,
+esta sale de la diferencia.
+
+**Apartados.** En las preguntas de desarrollo, los apartados del enunciado se renumeran a), b), c)… para el
+alumno (en el modelo llevan la letra del CE, con saltos). Cada entrega trae bajo el enunciado la línea
+`_Apartados: a) → CE a · b) → CE e_` para corregir.
+
+
 Te deja tres cosas en `.privado/DAM-0373-RA1/` (carpeta que nunca se sube a ningún sitio):
 
 - **`codigos.html`** — la hoja para imprimir y recortar, una papeleta por alumno.

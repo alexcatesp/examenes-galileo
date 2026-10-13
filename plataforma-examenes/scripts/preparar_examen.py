@@ -18,7 +18,7 @@ import csv
 import json
 import re
 import sys
-from datetime import date
+from datetime import date, datetime
 from html import escape
 from pathlib import Path
 
@@ -120,6 +120,24 @@ def poner_puntos(examen: dict, config_pesos: Path) -> list[str]:
     return avisos
 
 
+def momento_ms(texto: str) -> int:
+    """«AAAA-MM-DD HH:MM» (hora local del equipo del profesor) → milisegundos Unix."""
+    try:
+        return int(datetime.strptime(texto.strip().replace("T", " "), "%Y-%m-%d %H:%M").astimezone().timestamp() * 1000)
+    except ValueError:
+        raise ErrorExamen(f"«{texto}» no es una fecha y hora válidas: usa AAAA-MM-DD HH:MM (por ejemplo, 2026-10-20 08:30)")
+
+
+def aplicar_horario(examen: dict, args: argparse.Namespace) -> None:
+    """Vuelca --inicio/--fin en el examen. Si no se da --duracion, sale de la ventana."""
+    if args.inicio:
+        examen["inicio"] = momento_ms(args.inicio)
+    if args.fin:
+        examen["fin"] = momento_ms(args.fin)
+    if examen.get("inicio") and examen.get("fin") and not args.duracion:
+        examen["duracion"] = max(0, round((examen["fin"] - examen["inicio"]) / 60000))
+
+
 def validar(examen: dict) -> list[str]:
     """Errores que impiden cifrar (estructura). Las fugas se comprueban aparte."""
     errores: list[str] = []
@@ -128,6 +146,13 @@ def validar(examen: dict) -> list[str]:
     duracion = examen.get("duracion")
     if not isinstance(duracion, int) or not 5 <= duracion <= 600:
         errores.append("duracion: minutos enteros entre 5 y 600 (usa --duracion)")
+    inicio, fin = examen.get("inicio"), examen.get("fin")
+    if (inicio is not None and not isinstance(inicio, int)) or (fin is not None and not isinstance(fin, int)):
+        errores.append("inicio/fin: marcas de tiempo (usa --inicio y --fin)")
+    elif inicio and fin and fin <= inicio:
+        errores.append("fin: tiene que ser posterior al inicio")
+    elif fin and not inicio:
+        errores.append("fin: sin hora de inicio (usa --inicio y --fin juntos)")
     for campo in ("ra", *CAMPOS_META):
         valor = str(examen.get(campo, ""))
         if not RE_SEGURO.match(valor):
@@ -189,6 +214,7 @@ def cmd_extraer(args: argparse.Namespace) -> int:
     examen = {"id": args.id or id_por_defecto(examen), **examen}
     if args.duracion:
         examen["duracion"] = args.duracion
+    aplicar_horario(examen, args)
     examen["titulo"] = args.titulo or f"Examen {examen['ra']}".strip()
     examen["grupo"] = args.grupo or grupo_por_defecto(examen)
     examen["siglas"] = args.siglas or cargar_siglas().get(examen.get("codigoModulo", ""), "")
@@ -226,12 +252,28 @@ def cmd_extraer(args: argparse.Namespace) -> int:
     return 0
 
 
+RE_APARTADO = re.compile(r"\*\*\(([a-z])\)\*\*")
+
+
+def renumerar_apartados(pregunta: dict) -> dict:
+    """Los apartados del enunciado llevan la letra del CE (a, c, f…), con saltos.
+    Para el alumno se renumeran a), b), c)… y se guarda a qué CE corresponde cada uno
+    en «apartados» ({"a": "a", "b": "c", "c": "f"}); el orden de «ce» no cambia."""
+    letras = RE_APARTADO.findall(pregunta.get("enunciado", ""))
+    ce = pregunta.get("ce") or []
+    if len(letras) < 2 or len(set(letras)) != len(letras) or not set(letras) <= set(ce):
+        return pregunta
+    nuevas = iter("abcdefghijklmnopqrstuvwxyz")
+    enunciado = RE_APARTADO.sub(lambda m: f"**({next(nuevas)})**", pregunta["enunciado"])
+    return {**pregunta, "enunciado": enunciado, "apartados": {n: c for n, c in zip("abcdefghijklmnopqrstuvwxyz", letras)}}
+
+
 def _examen_limpio(examen: dict) -> dict:
     """Copia sin claves internas (_origenTipo...) lista para cifrar."""
     limpio = {k: v for k, v in examen.items() if not k.startswith("_")}
     limpio["partes"] = [
         {**{k: v for k, v in p.items() if not k.startswith("_")},
-         "preguntas": [{k: v for k, v in q.items() if not k.startswith("_")} for q in p["preguntas"]]}
+         "preguntas": [renumerar_apartados({k: v for k, v in q.items() if not k.startswith("_")}) for q in p["preguntas"]]}
         for p in examen["partes"]
     ]
     return limpio
@@ -242,6 +284,7 @@ def cmd_cifrar(args: argparse.Namespace) -> int:
     examen = json.loads(origen.read_text(encoding="utf-8"))
     if args.duracion:
         examen["duracion"] = args.duracion
+    aplicar_horario(examen, args)
     errores = validar(examen)
     if errores:
         raise ErrorExamen("El examen no es válido:\n  " + "\n  ".join(errores))
@@ -297,6 +340,7 @@ def cmd_cifrar(args: argparse.Namespace) -> int:
 | URL para el alumnado | {url} |
 | Contraseña de desbloqueo / reanudación | **`{contrasena}`** |
 | Duración | {final['duracion']} min |
+| Horario teórico | {horario_texto(final)} |
 | Códigos generados | {len(codigos)} (en `codigos.csv` y `codigos.html`) |
 | Receptor de entregas | {receptor} |
 | Generado | {final['generado']} |
@@ -325,6 +369,13 @@ a nadie. El `codigos.csv` **no** se le pasa a la IA.
         print("⚠ config.json no tiene «receptor»: las entregas solo se descargarán en local.")
     print("Publica haciendo commit + push de examenes/ (la Action lo despliega).")
     return 0
+
+
+def horario_texto(examen: dict) -> str:
+    if not examen.get("inicio"):
+        return "sin fijar: el reloj de cada alumno cuenta desde que pulsa «Empezar»"
+    f = lambda ms: datetime.fromtimestamp(ms / 1000).astimezone().strftime("%d/%m/%Y %H:%M")
+    return f"{f(examen['inicio'])} → {f(examen['fin'])}: el reloj cuenta hasta la hora de fin" if examen.get("fin") else f(examen["inicio"])
 
 
 def hoja_codigos(examen: dict, meta: dict, codigos: list[str], url: str) -> str:
@@ -397,6 +448,8 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("modelo")
     e.add_argument("--id", help="identificador (por defecto CICLO-MODULO-RA)")
     e.add_argument("--duracion", type=int, help="minutos de examen")
+    e.add_argument("--inicio", help="hora teórica de inicio, «AAAA-MM-DD HH:MM»")
+    e.add_argument("--fin", help="hora teórica de fin: el reloj de la cuenta atrás cuenta hasta ella")
     e.add_argument("--titulo")
     e.add_argument("--grupo", help="por defecto, curso + ciclo (1DAM)")
     e.add_argument("--siglas", help="por defecto, las de siglas.json (0373 → LMSG)")
@@ -410,6 +463,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("examen", help="ID (usa .privado/<ID>/examen.json) o ruta a un .json")
     c.add_argument("--codigos", type=int, required=True, help="número de códigos de acceso")
     c.add_argument("--duracion", type=int)
+    c.add_argument("--inicio", help="hora teórica de inicio, «AAAA-MM-DD HH:MM»")
+    c.add_argument("--fin", help="hora teórica de fin: el reloj de la cuenta atrás cuenta hasta ella")
     c.add_argument("--contrasena", help="por defecto se genera una aleatoria")
     c.add_argument("--regenerar", action="store_true", help="sobrescribe el paquete (invalida códigos)")
     c.add_argument("--iter", type=int, default=cripto.ITER_CODIGO, help=argparse.SUPPRESS)

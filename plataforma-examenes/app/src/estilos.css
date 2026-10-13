@@ -99,6 +99,8 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, .editor-codig
   font-family: var(--mono); font-size: 1.5rem; font-weight: 700; padding: 4px 14px; border-radius: 8px;
   background: var(--superficie-2); font-variant-numeric: tabular-nums; transition: background 0.3s, color 0.3s;
 }
+.reloj { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.reloj-fin { font-family: inherit; font-size: 0.65rem; font-weight: 500; opacity: 0.75; }
 .reloj.ambar { background: var(--ambar-suave); color: var(--ambar); }
 .reloj.rojo { background: var(--peligro-suave); color: var(--peligro); }
 

@@ -111,7 +111,8 @@ export default function App() {
     return () => clearInterval(t);
   }, [relojVisible, desfase]);
 
-  const fin = estado?.inicio && examen ? estado.inicio + examen.duracion * 60_000 : Infinity;
+  // Con hora de fin fijada por el profesor, la cuenta atrás llega a esa hora aunque se empiece tarde.
+  const fin = !examen ? Infinity : examen.fin ?? (estado?.inicio ? estado.inicio + examen.duracion * 60_000 : Infinity);
   const restante = fin - ahora;
 
   const entregar = useCallback(

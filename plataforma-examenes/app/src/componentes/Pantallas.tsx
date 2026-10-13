@@ -2,6 +2,7 @@
 import { codigoValido, formatear } from '../lib/cripto';
 import { formatoPuntos } from '../lib/entrega';
 import type { Examen } from '../lib/tipos';
+import { horaDe } from './VistaExamen';
 
 export function Tarjeta({ children, ancha = false }: { children: React.ReactNode; ancha?: boolean }) {
   return (
@@ -79,7 +80,14 @@ export function Instrucciones({ examen, error, alEmpezar }: { examen: Examen; er
       <h1>{examen.titulo || examen.id}</h1>
       {examen.raTexto && <p className="ra"><strong>{examen.ra}:</strong> {examen.raTexto}</p>}
       <ul className="datos">
-        <li><strong>{examen.duracion} min</strong> de duración</li>
+        {examen.fin ? (
+          <li>
+            Termina a las <strong>{horaDe(examen.fin)}</strong> del {new Date(examen.fin).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}.
+            {' '}El reloj cuenta hasta esa hora, aunque empieces más tarde.
+          </li>
+        ) : (
+          <li><strong>{examen.duracion} min</strong> de duración, desde que pulses «Empezar»</li>
+        )}
         <li><strong>{total}</strong> preguntas en {examen.partes.length} partes</li>
       </ul>
       {conPuntos && (

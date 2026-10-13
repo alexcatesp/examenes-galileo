@@ -12,6 +12,8 @@ export interface Pregunta {
   item?: string | null;
   nivel?: string | null;
   ce?: string[];
+  /** Apartado del enunciado (a, b, c…) → letra del CE al que corresponde. */
+  apartados?: Record<string, string>;
   /** Lo que aporta a la nota del RA, sobre 10. Lo calcula preparar_examen.py. */
   puntos?: number | null;
   tipo: Tipo;
@@ -44,6 +46,9 @@ export interface Examen extends Meta {
   codigoModulo: string;
   raTexto: string;
   duracion: number;
+  /** Horario teórico (ms Unix). Si hay `fin`, la cuenta atrás llega a esa hora y no a inicio + duración. */
+  inicio?: number;
+  fin?: number;
   partes: Parte[];
   desbloqueo: { sal: string; iter: number; hash: string };
   generado: string;

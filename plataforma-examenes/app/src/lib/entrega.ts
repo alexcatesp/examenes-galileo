@@ -89,6 +89,9 @@ export function generarMd(examen: Examen, estado: Estado, fin: number, automatic
         describirTipo(p),
       ];
       cuerpo.push(`### ${meta.filter(Boolean).join(' · ')}`, '', p.enunciado.trim(), '');
+      if (p.apartados) {
+        cuerpo.push(`_Apartados: ${Object.entries(p.apartados).map(([a, ce]) => `${a}) → CE ${ce}`).join(' · ')}_`, '');
+      }
       if (p.opciones.length) {
         cuerpo.push(...p.opciones.map((o) => `- ${o.letra}) ${o.texto}`), '');
       }

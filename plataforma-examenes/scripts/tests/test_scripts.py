@@ -436,3 +436,32 @@ def test_hoja_de_codigos_lleva_una_papeleta_por_codigo():
     for c in codigos:
         assert c in html
     assert "1DAM · LMSG · RA1" in html
+
+
+def test_apartados_se_renumeran_y_guardan_su_ce():
+    q = {"id": "C1", "ce": ["a", "c", "d", "e", "f"], "tipo": "texto", "opciones": [],
+         "enunciado": "Dado X: **(a)** señala; **(e)** compara; **(f)** valora."}
+    r = preparar_examen.renumerar_apartados(q)
+    assert r["enunciado"] == "Dado X: **(a)** señala; **(b)** compara; **(c)** valora."
+    assert r["apartados"] == {"a": "a", "b": "e", "c": "f"}
+    assert q["enunciado"].count("(e)") == 1  # no toca el original
+
+
+def test_apartados_sin_correspondencia_no_se_tocan():
+    un_solo = {"id": "B4", "ce": ["b"], "enunciado": "Haz **(b)** esto.", "opciones": []}
+    assert preparar_examen.renumerar_apartados(un_solo) is un_solo
+    ajeno = {"id": "B9", "ce": ["a"], "enunciado": "**(a)** uno **(z)** dos", "opciones": []}
+    assert preparar_examen.renumerar_apartados(ajeno) is ajeno
+
+
+def test_horario_teorico_fija_inicio_fin_y_duracion():
+    import argparse
+    args = argparse.Namespace(inicio="2026-10-20 08:30", fin="2026-10-20 10:10", duracion=None)
+    examen = {}
+    preparar_examen.aplicar_horario(examen, args)
+    assert examen["duracion"] == 100 and examen["fin"] - examen["inicio"] == 100 * 60000
+    errores = preparar_examen.validar({"id": "H-1", "duracion": 100, **META, "inicio": examen["fin"], "fin": examen["inicio"],
+                                       "partes": []})
+    assert any("posterior" in e for e in errores)
+    with pytest.raises(preparar_examen.ErrorExamen):
+        preparar_examen.momento_ms("20/10/2026 8:30")
