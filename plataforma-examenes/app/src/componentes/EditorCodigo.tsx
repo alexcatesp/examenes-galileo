@@ -54,7 +54,7 @@ const LENGUAJES: Record<string, Cargador> = {
   shell: async () => StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell),
 };
 
-const ANCHO_TAB = 4;
+export const ANCHO_TAB = 4;
 
 /**
  * Tab como en un cuaderno: sin selección (o dentro de una línea) inserta espacios hasta el

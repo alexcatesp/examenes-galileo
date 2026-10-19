@@ -66,7 +66,7 @@ Conviene decirlo claro:
   puro); en cualquier otro caso, como puede mezclar teoría y código, se llama **«Tu
   respuesta»**.
 - Todos los cuadros de respuesta **ajustan las líneas largas** (no hay barra horizontal). En
-  el editor, **Tab** inserta espacios hasta el siguiente tope en el punto donde estás
+  el editor y en los cuadros de texto, **Tab** inserta espacios (tope de 4 columnas) en el punto donde estás
   (sirve para alinear un comentario tras una instrucción) y **Intro** no añade sangría: lo
   que ve el alumno es lo que escribió. Con varias líneas seleccionadas, Tab las sangra y
   Mayús+Tab las deshace.

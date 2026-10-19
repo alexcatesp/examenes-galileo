@@ -6,21 +6,25 @@ import { useIdioma } from '../lib/i18n';
 import { renderizar, renderizarLinea } from '../lib/markdown';
 import { textosPregunta, traduccionDe } from '../lib/traducciones';
 import type { Estado, Examen, Respuesta } from '../lib/tipos';
-import { EditorCodigo } from './EditorCodigo';
+import { ANCHO_TAB, EditorCodigo } from './EditorCodigo';
 import { SelectorIdioma } from './Pantallas';
 import { Rico } from './Rico';
 
 const NIVEL_CLASE: Record<string, string> = { Básico: 'basico', Intermedio: 'intermedio', Avanzado: 'avanzado' };
+const NIVEL_CLAVE = { Básico: 'nivelBasico', Intermedio: 'nivelIntermedio', Avanzado: 'nivelAvanzado' } as const;
 
-/** Tab en un textarea inserta dos espacios (sangrar XML/HTML) en vez de saltar al siguiente campo.
+/** Tab en un textarea inserta espacios hasta el siguiente tope de 4 columnas, igual que el editor de código,
+ *  en vez de saltar al siguiente campo.
  *  Con Mayús+Tab o Ctrl/Alt/Meta se conserva el comportamiento normal para poder salir con el teclado. */
 function sangrarConTab(e: TeclaReact<HTMLTextAreaElement>, alCambiar: (v: string) => void) {
   if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return;
   e.preventDefault();
   const t = e.currentTarget;
   const { selectionStart: a, selectionEnd: b, value } = t;
-  alCambiar(value.slice(0, a) + '  ' + value.slice(b));
-  requestAnimationFrame(() => t.setSelectionRange(a + 2, a + 2));
+  const columna = a - (value.lastIndexOf('\n', a - 1) + 1);
+  const espacios = ' '.repeat(ANCHO_TAB - (columna % ANCHO_TAB));
+  alCambiar(value.slice(0, a) + espacios + value.slice(b));
+  requestAnimationFrame(() => t.setSelectionRange(a + espacios.length, a + espacios.length));
 }
 
 export function horaDe(ms: number): string {
@@ -139,7 +143,7 @@ export function VistaExamen({ examen, vista, estado, restante, alResponder, alMo
         <div className="pregunta-meta">
           <span>{tituloParte(p.parteId, p.parteTitulo)}</span>
           <span className="pregunta-num">{t('pregunta')} {p.parteId}{p.numero}</span>
-          {p.nivel && <span className={`nivel ${NIVEL_CLASE[p.nivel] ?? ''}`}>{p.nivel}</span>}
+          {p.nivel && <span className={`nivel ${NIVEL_CLASE[p.nivel] ?? ''}`}>{p.nivel in NIVEL_CLAVE ? t(NIVEL_CLAVE[p.nivel as keyof typeof NIVEL_CLAVE]) : p.nivel}</span>}
           {!!p.puntos && (
             <span className="puntos" title={t('puntosTitulo')}>
               {t('puntosPregunta', { n: formatoPuntos(p.puntos) })}
