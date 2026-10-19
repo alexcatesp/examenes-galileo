@@ -8,6 +8,11 @@ Flujo:
                                      + .privado/<ID>/codigos.csv y ficha-profesor.md
   4. verificar <ID> <CODIGO>        → comprueba que un código abre el paquete
 
+Opcional, para alumnado que no domina el español:
+  traducir <ID> --idioma en|fr|tr   → .privado/<ID>/traducciones/<idioma>.json (esqueleto)
+  comprobar-traducciones <ID>       → valida ids, opciones y bloques de código
+  (cifrar incluye solo las traducciones que encuentre en esa carpeta)
+
 Todo lo que hay en .privado/ está en .gitignore: NUNCA se sube ni se pasa a la IA.
 """
 
@@ -26,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import calcular_notas  # noqa: E402
 import cripto  # noqa: E402
+import traducciones  # noqa: E402
 from extractor import LENGUAJES, NIVELES, TIPOS, extraer, fugas  # noqa: E402
 
 BASE = Path(__file__).resolve().parent.parent
@@ -295,6 +301,13 @@ def cmd_cifrar(args: argparse.Namespace) -> int:
             + "\n  ".join(encontradas)
         )
     ident = examen["id"]
+    try:
+        trads, avisos_trad = traducciones.cargar(examen, PRIVADO / ident)
+    except traducciones.ErrorTraduccion as e:
+        raise ErrorExamen(str(e)) from e
+    fugas_trad = fugas({"partes": [{"titulo": t, "preguntas": []} for t in traducciones.textos(trads)]})
+    if fugas_trad:
+        raise ErrorExamen("Posible solución dentro de una traducción:\n  " + "\n  ".join(fugas_trad))
     paquete_ruta = PUBLICADOS / f"{ident}.json"
     carpeta = PRIVADO / ident
     if paquete_ruta.exists() and not args.regenerar:
@@ -311,6 +324,8 @@ def cmd_cifrar(args: argparse.Namespace) -> int:
     final = _examen_limpio(examen)
     final["desbloqueo"] = cripto.hash_desbloqueo(contrasena)
     final["generado"] = date.today().isoformat()
+    if trads:
+        final["traducciones"] = trads
     meta = meta_publica(examen)
     paquete = cripto.cifrar_paquete(final, codigos, iter_codigo=args.iter, meta=meta)
 
@@ -329,6 +344,7 @@ def cmd_cifrar(args: argparse.Namespace) -> int:
     url = config.get("urlPublica", "https://<usuario>.github.io/<repo>/").rstrip("/") + f"/?e={ident}"
     receptor = config.get("receptor") or "(sin configurar: solo habrá descarga local)"
     (carpeta / "codigos.html").write_text(hoja_codigos(final, meta, codigos, url), encoding="utf-8")
+    traducidas = ", ".join(f"{i} ({t['sha256'][:12]})" for i, t in trads.items()) or "ninguna"
     ficha = f"""# Ficha del profesor — {ident}
 
 > Documento privado. No lo subas al repo ni lo compartas con la IA.
@@ -341,6 +357,7 @@ def cmd_cifrar(args: argparse.Namespace) -> int:
 | Contraseña de desbloqueo / reanudación | **`{contrasena}`** |
 | Duración | {final['duracion']} min |
 | Horario teórico | {horario_texto(final)} |
+| Traducciones | {traducidas} |
 | Códigos generados | {len(codigos)} (en `codigos.csv` y `codigos.html`) |
 | Receptor de entregas | {receptor} |
 | Generado | {final['generado']} |
@@ -365,6 +382,10 @@ a nadie. El `codigos.csv` **no** se le pasa a la IA.
     print(f"✓ Ficha del profesor: {(carpeta / 'ficha-profesor.md').relative_to(BASE)}")
     print(f"  Contraseña de desbloqueo: {contrasena}")
     print(f"  Entregas en: {carpeta_drive(meta)}/{nombre_entrega(meta, '<CÓDIGO>')}")
+    for i, t in trads.items():
+        print(f"✓ Traducción al {traducciones.IDIOMAS[i]}: huella {t['sha256'][:12]}… (guarda .privado/{ident}/traducciones/{i}.json)")
+    for a in avisos_trad:
+        print(f"⚠ {a}")
     if not config.get("receptor"):
         print("⚠ config.json no tiene «receptor»: las entregas solo se descargarán en local.")
     print("Publica haciendo commit + push de examenes/ (la Action lo despliega).")
@@ -376,6 +397,41 @@ def horario_texto(examen: dict) -> str:
         return "sin fijar: el reloj de cada alumno cuenta desde que pulsa «Empezar»"
     f = lambda ms: datetime.fromtimestamp(ms / 1000).astimezone().strftime("%d/%m/%Y %H:%M")
     return f"{f(examen['inicio'])} → {f(examen['fin'])}: el reloj cuenta hasta la hora de fin" if examen.get("fin") else f(examen["inicio"])
+
+
+def cmd_traducir(args: argparse.Namespace) -> int:
+    """Crea el esqueleto `.privado/<ID>/traducciones/<idioma>.json` para traducirlo."""
+    origen = PRIVADO / args.examen / "examen.json"
+    examen = json.loads(origen.read_text(encoding="utf-8"))
+    destino = PRIVADO / args.examen / "traducciones" / f"{args.idioma}.json"
+    if destino.exists() and not args.forzar:
+        raise ErrorExamen(f"{destino.name} ya existe (usa --forzar para empezar de cero)")
+    try:
+        datos = traducciones.plantilla(examen, args.idioma)
+    except traducciones.ErrorTraduccion as e:
+        raise ErrorExamen(str(e)) from e
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino.write_text(json.dumps(datos, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"✓ Esqueleto: {destino.relative_to(BASE)}")
+    print("  Traduce los textos conservando ids, letras de opción y bloques de código; después")
+    print("  `comprobar-traducciones` para validarlas y `cifrar --regenerar` para publicarlas.")
+    print("  Revísalas tú: son una ayuda al alumno, pero la responsabilidad es del profesor.")
+    return 0
+
+
+def cmd_comprobar_traducciones(args: argparse.Namespace) -> int:
+    examen = json.loads((PRIVADO / args.examen / "examen.json").read_text(encoding="utf-8"))
+    try:
+        trads, avisos = traducciones.cargar(examen, PRIVADO / args.examen)
+    except traducciones.ErrorTraduccion as e:
+        raise ErrorExamen(str(e)) from e
+    for i, t in trads.items():
+        print(f"✓ {traducciones.IDIOMAS[i]}: {len(t['preguntas'])} preguntas · huella {t['sha256'][:12]}…")
+    for a in avisos:
+        print(f"⚠ {a}")
+    if not trads:
+        print(f"No hay traducciones en .privado/{args.examen}/traducciones/")
+    return 0
 
 
 def hoja_codigos(examen: dict, meta: dict, codigos: list[str], url: str) -> str:
@@ -470,6 +526,16 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--iter", type=int, default=cripto.ITER_CODIGO, help=argparse.SUPPRESS)
     c.set_defaults(func=cmd_cifrar)
 
+    t = sub.add_parser("traducir", help="crea el esqueleto de una traducción (en, fr, tr) para traducirlo")
+    t.add_argument("examen", help="ID del examen")
+    t.add_argument("--idioma", required=True, choices=sorted(traducciones.IDIOMAS))
+    t.add_argument("--forzar", action="store_true", help="empieza de cero aunque ya exista")
+    t.set_defaults(func=cmd_traducir)
+
+    ct = sub.add_parser("comprobar-traducciones", help="valida las traducciones de .privado/<ID>/traducciones/")
+    ct.add_argument("examen", help="ID del examen")
+    ct.set_defaults(func=cmd_comprobar_traducciones)
+
     v = sub.add_parser("verificar", help="comprueba que un código abre el paquete")
     v.add_argument("id")
     v.add_argument("codigo")
@@ -478,7 +544,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     try:
         return args.func(args)
-    except (ErrorExamen, FileNotFoundError, KeyError) as exc:
+    except (ErrorExamen, traducciones.ErrorTraduccion, FileNotFoundError, KeyError) as exc:
         print(f"✗ {exc}", file=sys.stderr)
         return 1
 

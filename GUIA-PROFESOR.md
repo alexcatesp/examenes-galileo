@@ -61,7 +61,15 @@ Conviene decirlo claro:
 - **Texto libre**, para supuestos y justificaciones.
 - **Editor de código** con números de línea y colores de sintaxis (HTML, CSS, JavaScript,
   TypeScript, JSON, XML, SQL, Java, Python, PHP, YAML, Markdown, shell). Debajo tiene un
-  cuadro aparte para la explicación o los apartados.
+  cuadro aparte para la explicación o los apartados. El editor se llama **«Tu código · java»**
+  solo si la pregunta lleva la marca explícita `<!-- respuesta: codigo(java) -->` (código
+  puro); en cualquier otro caso, como puede mezclar teoría y código, se llama **«Tu
+  respuesta»**.
+- Todos los cuadros de respuesta **ajustan las líneas largas** (no hay barra horizontal). En
+  el editor, **Tab** inserta espacios hasta el siguiente tope en el punto donde estás
+  (sirve para alinear un comentario tras una instrucción) y **Intro** no añade sangría: lo
+  que ve el alumno es lo que escribió. Con varias líneas seleccionadas, Tab las sangra y
+  Mayús+Tab las deshace.
 
 > El editor **no ayuda a escribir bien**, y es deliberado: no autocompleta, no cierra
 > etiquetas solo, no marca en rojo los errores ni señala los paréntesis que no casan. Si un
@@ -70,6 +78,46 @@ Conviene decirlo claro:
 Las preguntas y las opciones **se barajan** para cada alumno, así que mirar la pantalla del de
 al lado no sirve. El fichero de respuestas sale siempre en el orden original, para que
 corrijas todos igual.
+
+### Alumnado que no domina el español
+
+La interfaz se puede cambiar a **inglés, francés o turco** (botones de idioma en la portada y
+en la cabecera del examen; se acuerda de la elección). Además, si preparas una traducción del
+examen, el alumno ve los enunciados y las opciones en su idioma y **puede responder en él**.
+
+```bash
+python scripts/preparar_examen.py traducir DAM-0373-RA1 --idioma en     # esqueleto en .privado/…/traducciones/en.json
+# traduce el fichero (puedes pedírselo a Claude) y revísalo
+python scripts/preparar_examen.py comprobar-traducciones DAM-0373-RA1   # ids, opciones, bloques de código
+python scripts/preparar_examen.py cifrar DAM-0373-RA1 --codigos 30 --regenerar
+```
+
+Las traducciones viajan **dentro del paquete cifrado**, igual que el examen. Un mismo examen
+sirve para todos: el alumno elige idioma después de entrar con su código.
+
+Qué conviene tener claro (el diseño intenta cubrirlo, pero la decisión es tuya):
+
+- **El español sigue siendo el texto de referencia.** Cada pregunta traducida lleva un aviso
+  («si algo no está claro, vale el texto en español») y un botón para ver el original. Así
+  nadie puede decir que se le examinó de un texto distinto del que tienen los demás.
+- **Queda constancia de qué texto vio cada alumno.** El `.md` de entrega lleva
+  `idioma_examen:` y `traduccion_sha256:` (huella del texto traducido), y el fichero exacto
+  queda en tu `.privado/<ID>/traducciones/`. Si hay una reclamación sobre la traducción,
+  puedes enseñar la que vio.
+- **Las respuestas en otro idioma se corrigen traducidas.** El `.md` conserva la respuesta
+  original y avisa en la cabecera del idioma. Corrige sobre tu traducción **y guarda el
+  original junto a ella**: si el alumno reclama que no se interpretó bien lo que escribió,
+  puede pedir que lo revise otra persona que domine ese idioma.
+- **La calidad de la traducción es responsabilidad tuya.** Una traducción automática puede
+  cambiar un matiz técnico. Revisa sobre todo las preguntas con trampas o con una palabra
+  decisiva, y los bloques de código (el comprobador avisa si cambian). Lo mejor, si puedes,
+  es que la vea alguien que domine el idioma, p. ej. el propio alumnado de otro curso o el
+  departamento de orientación.
+- **Es una ayuda lingüística, no una adaptación del criterio.** Se evalúa lo mismo, con los
+  mismos criterios. Si el alumno necesita además más tiempo o apoyos, eso se decide aparte.
+- **Normativa:** no se ha contrastado qué exige la normativa de evaluación para el alumnado
+  con desconocimiento del idioma. Antes de usarlo en una evaluación con peso en la nota,
+  conviene confirmarlo con jefatura de estudios u orientación.
 
 ### ¿Cuánto vale cada pregunta?
 

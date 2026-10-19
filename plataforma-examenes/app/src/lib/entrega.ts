@@ -1,5 +1,6 @@
 // Genera el .md de respuestas: SIN datos del alumno, solo el código de acceso.
 import { formatear } from './cripto';
+import { type Idioma, NOMBRE_IDIOMA_ES } from './i18n';
 import type { Estado, Examen, Pregunta, Respuesta } from './tipos';
 
 const FENCE_LENGUAJE: Record<string, string> = { texto: 'text', shell: 'bash' };
@@ -59,9 +60,10 @@ function respuestaMd(p: Pregunta, r: Respuesta | undefined): string {
   return `**Respuesta:**\n\n${bloque(String(valor), 'text')}`;
 }
 
-export function generarMd(examen: Examen, estado: Estado, fin: number, automatica: boolean): string {
+export function generarMd(examen: Examen, estado: Estado, fin: number, automatica: boolean, idioma: Idioma = 'es'): string {
   const codigo = formatear(estado.codigo);
   const inicio = estado.inicio ?? fin;
+  const traduccion = idioma === 'es' ? undefined : examen.traducciones?.[idioma];
   const yaml = [
     '---',
     `examen: ${JSON.stringify(examen.id)}`,
@@ -75,9 +77,22 @@ export function generarMd(examen: Examen, estado: Estado, fin: number, automatic
     `entrega: ${isoLocal(fin)}`,
     `duracion_min: ${Math.round((fin - inicio) / 60000)}`,
     `entrega_automatica: ${automatica}`,
+    // Idioma en que se vio el examen. Las respuestas pueden venir en ese idioma:
+    // hay que traducirlas para corregir. La huella identifica el texto traducido que vio.
+    `idioma_examen: ${idioma}`,
+    ...(traduccion ? [`traduccion_sha256: ${traduccion.sha256}`] : []),
     '---',
   ];
   const cuerpo = [`# Examen ${examen.id} — Código ${codigo}`, ''];
+  if (idioma !== 'es') {
+    cuerpo.push(
+      `> **Idioma del alumno: ${NOMBRE_IDIOMA_ES[idioma]}.** ` +
+        (traduccion ? 'Vio el enunciado traducido; ' : 'No había traducción de este examen; ') +
+        'los enunciados de abajo son el original en español. Las respuestas pueden estar escritas en ese idioma: ' +
+        'se traducen al corregir y se conserva el original.',
+      '',
+    );
+  }
   if (examen.raTexto) cuerpo.push(`> ${examen.ra}: ${examen.raTexto}`, '');
   for (const parte of examen.partes) {
     cuerpo.push(`## ${parte.titulo}`, '');

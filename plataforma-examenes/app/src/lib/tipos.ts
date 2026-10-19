@@ -18,8 +18,20 @@ export interface Pregunta {
   puntos?: number | null;
   tipo: Tipo;
   lenguaje?: string | null;
+  /** Código puro (marca explícita en el examen modelo): solo entonces el editor dice «Tu código». */
+  soloCodigo?: boolean;
   enunciado: string;
   opciones: Opcion[];
+}
+
+/** Versión traducida del texto de un examen (la prepara `preparar_examen.py traducir`). */
+export interface Traduccion {
+  /** Huella del texto traducido: queda en el .md del alumno por si hay reclamación. */
+  sha256: string;
+  titulo?: string;
+  raTexto?: string;
+  partes?: Record<string, string>;
+  preguntas: Record<string, { enunciado: string; opciones?: Record<string, string> }>;
 }
 
 export interface Parte {
@@ -50,6 +62,8 @@ export interface Examen extends Meta {
   inicio?: number;
   fin?: number;
   partes: Parte[];
+  /** Traducciones por código de idioma (en, fr, tr). El español es el texto de referencia. */
+  traducciones?: Record<string, Traduccion>;
   desbloqueo: { sal: string; iter: number; hash: string };
   generado: string;
 }

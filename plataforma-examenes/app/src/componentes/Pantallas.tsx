@@ -1,14 +1,38 @@
 ﻿import { type FormEvent, useState } from 'react';
 import { codigoValido, formatear } from '../lib/cripto';
+import { traduccionDe } from '../lib/traducciones';
 import { formatoPuntos } from '../lib/entrega';
+import { IDIOMAS, LOCALE, NOMBRE_IDIOMA, useIdioma } from '../lib/i18n';
 import type { Examen } from '../lib/tipos';
 import { horaDe } from './VistaExamen';
+import { Rico } from './Rico';
 
 export function Tarjeta({ children, ancha = false }: { children: React.ReactNode; ancha?: boolean }) {
   return (
     <main className="fondo">
       <section className={`tarjeta ${ancha ? 'ancha' : ''}`}>{children}</section>
     </main>
+  );
+}
+
+/** Selector de idioma de la interfaz; cada idioma se nombra en sí mismo. */
+export function SelectorIdioma() {
+  const { idioma, cambiar, t } = useIdioma();
+  return (
+    <div className="selector-idioma" role="group" aria-label={t('idioma')}>
+      {IDIOMAS.map((i) => (
+        <button
+          key={i}
+          type="button"
+          lang={i}
+          className={`boton-idioma ${i === idioma ? 'activo' : ''}`}
+          aria-pressed={i === idioma}
+          onClick={() => cambiar(i)}
+        >
+          {NOMBRE_IDIOMA[i]}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -22,6 +46,7 @@ export function Portada({ idExamen, ocupado, error, alEntrar }: {
   error: string | null;
   alEntrar: (codigo: string) => void;
 }) {
+  const { t } = useIdioma();
   const [codigo, setCodigo] = useState('');
   const [local, setLocal] = useState<string | null>(null);
 
@@ -29,11 +54,7 @@ export function Portada({ idExamen, ocupado, error, alEntrar }: {
     e.preventDefault();
     if (!codigoValido(codigo)) {
       const util = codigo.replace(/[^0-9A-Za-z]/g, '').length;
-      setLocal(
-        util !== 12
-          ? 'Aquí va el código de acceso del alumno (12 caracteres, p. ej. K7FM-2QXR-9TPA). La contraseña del profesor se pide solo si el examen se bloquea.'
-          : 'El código no es correcto. Revisa que lo has tecleado bien.',
-      );
+      setLocal(util !== 12 ? t('errCodigoLongitud') : t('errCodigoMal'));
       return;
     }
     setLocal(null);
@@ -42,10 +63,11 @@ export function Portada({ idExamen, ocupado, error, alEntrar }: {
 
   return (
     <Tarjeta>
-      <p className="antetitulo">IES Galileo · Examen</p>
+      <SelectorIdioma />
+      <p className="antetitulo">{t('portadaAntetitulo')}</p>
       <h1>{idExamen}</h1>
       <form onSubmit={enviar} className="formulario">
-        <label htmlFor="codigo">Código de acceso</label>
+        <label htmlFor="codigo">{t('codigoAcceso')}</label>
         <input
           id="codigo"
           className="entrada-codigo"
@@ -61,66 +83,67 @@ export function Portada({ idExamen, ocupado, error, alEntrar }: {
           disabled={ocupado}
         />
         <button className="boton primario" disabled={ocupado || !codigo.trim()}>
-          {ocupado ? 'Abriendo…' : 'Entrar'}
+          {ocupado ? t('abriendo') : t('entrar')}
         </button>
       </form>
       {(local || error) && <Aviso tipo="error">{local ?? error}</Aviso>}
-      <p className="nota">Tu profesor te dará un código de acceso. No escribas tu nombre en ningún sitio del examen.</p>
+      <p className="nota">{t('notaPortada')}</p>
     </Tarjeta>
   );
 }
 
 export function Instrucciones({ examen, error, alEmpezar }: { examen: Examen; error: string | null; alEmpezar: () => void }) {
+  const { idioma, t } = useIdioma();
+  const trad = traduccionDe(examen, idioma);
+  const titulo = (p: Examen['partes'][number]) => trad?.partes?.[p.id] ?? p.titulo;
   const total = examen.partes.reduce((n, p) => n + p.preguntas.length, 0);
   const puntosDe = (p: Examen['partes'][number]) => p.preguntas.reduce((n, q) => n + (q.puntos ?? 0), 0);
   const conPuntos = examen.partes.some((p) => puntosDe(p) > 0);
   return (
     <Tarjeta ancha>
+      <SelectorIdioma />
       <p className="antetitulo">{[examen.ciclo, examen.modulo].filter(Boolean).join(' · ')}</p>
-      <h1>{examen.titulo || examen.id}</h1>
-      {examen.raTexto && <p className="ra"><strong>{examen.ra}:</strong> {examen.raTexto}</p>}
+      <h1>{trad?.titulo ?? (examen.titulo || examen.id)}</h1>
+      {examen.raTexto && <p className="ra"><strong>{examen.ra}:</strong> {trad?.raTexto ?? examen.raTexto}</p>}
       <ul className="datos">
         {examen.fin ? (
           <li>
-            Termina a las <strong>{horaDe(examen.fin)}</strong> del {new Date(examen.fin).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}.
-            {' '}El reloj cuenta hasta esa hora, aunque empieces más tarde.
+            <Rico texto={t('terminaA', {
+              h: horaDe(examen.fin),
+              f: new Date(examen.fin).toLocaleDateString(LOCALE[idioma], { day: 'numeric', month: 'long' }),
+            })} />
           </li>
         ) : (
-          <li><strong>{examen.duracion} min</strong> de duración, desde que pulses «Empezar»</li>
+          <li><Rico texto={t('duracionDesde', { n: examen.duracion })} /></li>
         )}
-        <li><strong>{total}</strong> preguntas en {examen.partes.length} partes</li>
+        <li><Rico texto={t('preguntasEnPartes', { n: total, p: examen.partes.length })} /></li>
       </ul>
+      {idioma !== 'es' && <Aviso tipo="info">{trad ? t('avisoTraduccion') : t('sinTraduccion')}</Aviso>}
       {conPuntos && (
         <>
-          <h2>Cuánto vale cada parte</h2>
+          <h2>{t('cuantoVale')}</h2>
           <table className="tabla-puntos">
             <tbody>
               {examen.partes.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.titulo}</td>
-                  <td>{p.preguntas.length} {p.preguntas.length === 1 ? 'pregunta' : 'preguntas'}</td>
-                  <td><strong>{formatoPuntos(puntosDe(p))}</strong> puntos</td>
+                  <td>{titulo(p)}</td>
+                  <td>{p.preguntas.length} {p.preguntas.length === 1 ? t('unaPregunta') : t('variasPreguntas')}</td>
+                  <td><Rico texto={t('puntosN', { n: formatoPuntos(puntosDe(p)) })} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="nota">
-            Cada pregunta lleva escrito lo que suma, sobre 10. No todas valen igual: depende del
-            criterio que evalúa y de su nivel.
-          </p>
+          <p className="nota">{t('notaPuntos')}</p>
         </>
       )}
-      <h2>Normas</h2>
+      <h2>{t('normas')}</h2>
       <ol className="normas">
-        <li>El examen se hace en <strong>pantalla completa</strong>. Si sales de ella, cambias de ventana o de pestaña, <strong>el examen se bloquea</strong> y tendrá que desbloquearlo el profesor.</li>
-        <li>No se puede copiar ni pegar.</li>
-        <li><strong>No escribas tu nombre</strong> ni nada que te identifique en ninguna respuesta. Tu examen se identifica solo con tu código.</li>
-        <li>Tus respuestas se guardan solas. Puedes moverte libremente entre preguntas.</li>
-        <li>Cuando se acabe el tiempo, el examen se entrega automáticamente.</li>
-        <li>Al entregar se descargará un fichero <code>.md</code>: súbelo también a la tarea de Teams.</li>
+        {(['norma1', 'norma2', 'norma3', 'norma4', 'norma5', 'norma6', ...(idioma !== 'es' ? ['normaIdioma' as const] : [])] as const).map((k) => (
+          <li key={k}><Rico texto={t(k)} /></li>
+        ))}
       </ol>
       {error && <Aviso tipo="error">{error}</Aviso>}
-      <button className="boton primario grande" onClick={alEmpezar}>Empezar el examen</button>
+      <button className="boton primario grande" onClick={alEmpezar}>{t('empezar')}</button>
     </Tarjeta>
   );
 }
@@ -135,6 +158,7 @@ export function PedirContrasena({ titulo, texto, boton, error, ocupado, alEnviar
   alEnviar: (contrasena: string) => void;
   secundario?: React.ReactNode;
 }) {
+  const { t } = useIdioma();
   const [contrasena, setContrasena] = useState('');
   return (
     <div className="capa-bloqueo" role="dialog" aria-modal="true">
@@ -150,9 +174,9 @@ export function PedirContrasena({ titulo, texto, boton, error, ocupado, alEnviar
             setContrasena('');
           }}
         >
-          <label htmlFor="contrasena">Contraseña del profesor</label>
+          <label htmlFor="contrasena">{t('contrasenaProfesor')}</label>
           <input id="contrasena" type="password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} autoComplete="off" autoFocus disabled={ocupado} />
-          <button className="boton primario" disabled={ocupado || !contrasena}>{ocupado ? 'Comprobando…' : boton}</button>
+          <button className="boton primario" disabled={ocupado || !contrasena}>{ocupado ? t('comprobando') : boton}</button>
         </form>
         {error && <Aviso tipo="error">{error}</Aviso>}
         {secundario}

@@ -412,6 +412,8 @@ def extraer(texto: str, ruta: Path | None = None) -> tuple[dict, list[str]]:
                 "ce": ces,
                 "tipo": tipo,
                 "lenguaje": lang if tipo == "codigo" else None,
+                # Solo la marca explícita `codigo(lang)` dice «código puro»; lo deducido puede mezclar teoría.
+                "soloCodigo": tipo == "codigo" and origen_tipo == "marca",
                 "enunciado": enunciado,
                 "opciones": [{"letra": o.letra, "texto": o.texto} for o in opciones],
                 "_origenTipo": origen_tipo,

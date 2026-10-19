@@ -1,8 +1,8 @@
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, indentLess, indentMore, insertNewline } from '@codemirror/commands';
 import {
   HighlightStyle, indentUnit, type LanguageSupport, StreamLanguage, syntaxHighlighting,
 } from '@codemirror/language';
-import { Compartment, EditorState } from '@codemirror/state';
+import { Compartment, EditorSelection, EditorState, type StateCommand } from '@codemirror/state';
 import {
   drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers,
 } from '@codemirror/view';
@@ -54,13 +54,40 @@ const LENGUAJES: Record<string, Cargador> = {
   shell: async () => StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell),
 };
 
+const ANCHO_TAB = 4;
+
+/**
+ * Tab como en un cuaderno: sin selección (o dentro de una línea) inserta espacios hasta el
+ * siguiente tope y no toca el resto de la línea, así se puede alinear un comentario al final
+ * de una instrucción. Solo si hay varias líneas seleccionadas sangra el bloque.
+ * (`indentWithTab` sangraba siempre la línea entera.)
+ */
+const tabulador: StateCommand = (objetivo) => {
+  const { state, dispatch } = objetivo;
+  const variasLineas = state.selection.ranges.some(
+    (r) => !r.empty && state.doc.lineAt(r.from).number !== state.doc.lineAt(r.to).number,
+  );
+  if (variasLineas) return indentMore(objetivo);
+  dispatch(
+    state.update(
+      state.changeByRange((r) => {
+        const columna = r.from - state.doc.lineAt(r.from).from;
+        const texto = ' '.repeat(ANCHO_TAB - (columna % ANCHO_TAB));
+        return { changes: { from: r.from, to: r.to, insert: texto }, range: EditorSelection.cursor(r.from + texto.length) };
+      }),
+      { scrollIntoView: true, userEvent: 'input' },
+    ),
+  );
+  return true;
+};
+
 interface Props {
   valor: string;
   lenguaje: string;
   alCambiar: (valor: string) => void;
 }
 
-/** Editor sin ayudas: resaltado de sintaxis, números de línea y Tab, nada más. */
+/** Editor sin ayudas: resaltado de sintaxis, números de línea, ajuste de línea y Tab, nada más. */
 export function EditorCodigo({ valor, lenguaje, alCambiar }: Props) {
   const contenedor = useRef<HTMLDivElement>(null);
   const vista = useRef<EditorView | null>(null);
@@ -79,10 +106,19 @@ export function EditorCodigo({ valor, lenguaje, alCambiar }: Props) {
           highlightActiveLine(),
           drawSelection(),
           history(),
-          indentUnit.of('  '),
-          EditorState.tabSize.of(2),
+          indentUnit.of(' '.repeat(ANCHO_TAB)),
+          EditorState.tabSize.of(ANCHO_TAB),
+          EditorView.lineWrapping,
           syntaxHighlighting(RESALTADO, { fallback: true }),
-          keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+          // Enter con `insertNewline` (no `insertNewlineAndIndent`): el editor no sangra por su cuenta,
+          // lo que sale en la pantalla es lo que escribió el alumno.
+          keymap.of([
+            { key: 'Enter', run: insertNewline, shift: insertNewline },
+            { key: 'Tab', run: tabulador },
+            { key: 'Shift-Tab', run: indentLess },
+            ...defaultKeymap,
+            ...historyKeymap,
+          ]),
           EditorView.contentAttributes.of({ spellcheck: 'false', autocorrect: 'off', autocapitalize: 'off' }),
           EditorView.updateListener.of((u) => u.docChanged && cambio.current(u.state.doc.toString())),
           idioma.of([]),

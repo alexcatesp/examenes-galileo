@@ -129,6 +129,8 @@ Script** (Implementar → Gestionar implementaciones → ✏ → Versión: Nueva
 ## Límites conocidos
 
 - El editor de código **no ayuda a escribir bien**, y es a propósito: resalta la sintaxis, pero no autocompleta, no cierra etiquetas, no marca los paréntesis que no casan, no reindenta solo y no pinta de rojo los errores. Si un alumno deja una etiqueta sin cerrar, tiene que darse cuenta él.
+- Los cuadros de respuesta ajustan las líneas largas (sin barra horizontal). En el editor, Tab inserta espacios hasta el siguiente tope **en el cursor** (no sangra toda la línea; con varias líneas seleccionadas sí) e Intro no añade sangría. El editor se rotula «Tu código · lenguaje» solo si la pregunta lleva la marca `codigo(lang)` (`soloCodigo`); si no, «Tu respuesta».
+- **Idiomas:** interfaz en español, inglés, francés y turco (`app/src/lib/i18n.ts`) y enunciados traducidos opcionales: `python scripts/preparar_examen.py traducir <ID> --idioma en|fr|tr`, traducir `.privado/<ID>/traducciones/<idioma>.json`, `comprobar-traducciones <ID>` y `cifrar --regenerar`. Las traducciones van dentro del paquete cifrado con un sha256 que el `.md` de entrega recoge (`idioma_examen`, `traduccion_sha256`). Ver «Alumnado que no domina el español» en la guía del profesor.
 - Nada impide fotografiar la pantalla con el móvil ni usar un segundo dispositivo. El bloqueo disuade, pero la vigilancia en el aula sigue siendo necesaria.
 - Un alumno puede pasar su código a otro que no esté en el aula. Reparte los códigos en mano al empezar.
 - Si un alumno escribe su nombre dentro de una respuesta, ese nombre llega a la IA. La app avisa de que no lo haga en las instrucciones y en la cabecera del examen.

@@ -1,10 +1,12 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { Rico } from './componentes/Rico';
 import { Aviso, Instrucciones, PedirContrasena, Portada, Tarjeta } from './componentes/Pantallas';
 import { formatoReloj, VistaExamen } from './componentes/VistaExamen';
 import { entrarPantallaCompleta, salirPantallaCompleta, useSinPortapapeles, useVigilancia } from './lib/antitrampa';
 import { ordenAlumno, type PreguntaVista } from './lib/barajar';
 import { abrirPaquete, CodigoNoValido, contrasenaCorrecta, esPaquete, formatear, semilla } from './lib/cripto';
 import { descargar, generarMd, nombreFichero } from './lib/entrega';
+import { type Idioma, IdiomaContexto, idiomaInicial, recordarIdioma, traducir, type Tr, useIdioma } from './lib/i18n';
 import { cargar, guardar } from './lib/persistencia';
 import { consultarEstado, desfaseDe, enviar, marcarInicio } from './lib/receptor';
 import type { Config, Estado, Examen, Paquete, Respuesta } from './lib/tipos';
@@ -15,6 +17,18 @@ const ID_EXAMEN = new URLSearchParams(location.search).get('e')?.trim() ?? '';
 const AUTOGUARDADO_MS = 60_000;
 
 export default function App() {
+  const [idioma, setIdioma] = useState<Idioma>(idiomaInicial);
+  const t: Tr = useCallback((clave, valores) => traducir(idioma, clave, valores), [idioma]);
+  const cambiarIdioma = useCallback((i: Idioma) => { recordarIdioma(i); setIdioma(i); }, []);
+  return (
+    <IdiomaContexto.Provider value={{ idioma, cambiar: cambiarIdioma, t }}>
+      <Examenes />
+    </IdiomaContexto.Provider>
+  );
+}
+
+function Examenes() {
+  const { idioma, t } = useIdioma();
   const [fase, setFase] = useState<Fase>('cargando');
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -38,7 +52,7 @@ export default function App() {
   // ── Carga del paquete ────────────────────────────────────────────────
   useEffect(() => {
     if (!/^[\w-]{3,61}$/.test(ID_EXAMEN)) {
-      setError('Falta el identificador del examen en la dirección (…/?e=ID). Pide el enlace a tu profesor.');
+      setError(traducir(idiomaInicial(), 'errSinId'));
       setFase('error');
       return;
     }
@@ -57,11 +71,8 @@ export default function App() {
         descargado = null;
       }
       if (!esPaquete(descargado)) {
-        setError(
-          navigator.onLine === false
-            ? 'No hay conexión. Avisa a tu profesor.'
-            : `No existe ningún examen con el identificador «${ID_EXAMEN}», o ya no está disponible. Comprueba el enlace con tu profesor.`,
-        );
+        const i = idiomaInicial();
+        setError(navigator.onLine === false ? traducir(i, 'errSinConexion') : traducir(i, 'errNoExiste', { id: ID_EXAMEN }));
         setFase('error');
         return;
       }
@@ -119,7 +130,7 @@ export default function App() {
     async (automatica: boolean) => {
       if (!examen || !estado || estado.entregado) return;
       const momento = Math.min(Date.now() + desfase, fin);
-      const md = generarMd(examen, estado, momento, automatica);
+      const md = generarMd(examen, estado, momento, automatica, idioma);
       const final: Estado = { ...estado, entregado: { fecha: momento, md, automatica } };
       setEstado(final);
       guardar(final);
@@ -136,7 +147,7 @@ export default function App() {
         4,
       );
     },
-    [examen, estado, fin, config.receptor, desfase],
+    [examen, estado, fin, config.receptor, desfase, idioma],
   );
 
   useEffect(() => {
@@ -183,7 +194,7 @@ export default function App() {
         setFase('instrucciones');
       }
     } catch (e) {
-      setError(e instanceof CodigoNoValido ? 'Este código no sirve para este examen. Compruébalo con tu profesor.' : 'No se ha podido abrir el examen.');
+      setError(e instanceof CodigoNoValido ? t('errCodigoNoSirve') : t('errNoAbre'));
     } finally {
       setOcupado(false);
     }
@@ -191,7 +202,7 @@ export default function App() {
 
   const empezar = async () => {
     if (!(await entrarPantallaCompleta())) {
-      setError('No se ha podido activar la pantalla completa. Usa Chrome o Edge y vuelve a intentarlo.');
+      setError(t('errPantallaCompleta'));
       return;
     }
     setError(null);
@@ -213,8 +224,8 @@ export default function App() {
     setError(null);
     const ok = await contrasenaCorrecta(examen, contrasena);
     setOcupado(false);
-    if (!ok) return setError('Contraseña incorrecta.');
-    if (!(await entrarPantallaCompleta())) return setError('No se ha podido volver a pantalla completa. Inténtalo de nuevo.');
+    if (!ok) return setError(t('errContrasena'));
+    if (!(await entrarPantallaCompleta())) return setError(t('errVolverPantalla'));
     alAcertar();
     setAhora(Date.now());
   };
@@ -228,8 +239,8 @@ export default function App() {
   }, []);
 
   // ── Pantallas ────────────────────────────────────────────────────────
-  if (fase === 'cargando') return <Tarjeta><p>Cargando examen…</p></Tarjeta>;
-  if (fase === 'error') return <Tarjeta><h1>Examen no disponible</h1><Aviso tipo="error">{error}</Aviso></Tarjeta>;
+  if (fase === 'cargando') return <Tarjeta><p>{t('cargando')}</p></Tarjeta>;
+  if (fase === 'error') return <Tarjeta><h1>{t('examenNoDisponible')}</h1><Aviso tipo="error">{error}</Aviso></Tarjeta>;
   if (fase === 'portada') return <Portada idExamen={ID_EXAMEN} ocupado={ocupado} error={error} alEntrar={entrarConCodigo} />;
   if (!examen || !estado) return null;
 
@@ -238,9 +249,9 @@ export default function App() {
   if (fase === 'cerrado') {
     return (
       <Tarjeta>
-        <h1>Examen ya entregado</h1>
-        <p>El código <strong>{formatear(estado.codigo)}</strong> ya se usó para entregar este examen.</p>
-        <p>Si crees que es un error, avisa a tu profesor.</p>
+        <h1>{t('yaEntregadoTitulo')}</h1>
+        <p><Rico texto={t('yaEntregado', { c: formatear(estado.codigo) })} /></p>
+        <p>{t('siError')}</p>
       </Tarjeta>
     );
   }
@@ -249,12 +260,12 @@ export default function App() {
     const agotado = restante <= 0;
     return (
       <PedirContrasena
-        titulo="Reanudar examen"
+        titulo={t('reanudarTitulo')}
         texto={<>
-          <p>Este examen ya estaba empezado. Para continuar, llama al profesor.</p>
-          <p>Tiempo restante: <strong>{agotado ? 'agotado' : formatoReloj(restante)}</strong></p>
+          <p>{t('reanudarTexto')}</p>
+          <p><Rico texto={t('tiempoRestanteN', { t: agotado ? t('agotado') : formatoReloj(restante) })} /></p>
         </>}
-        boton="Reanudar"
+        boton={t('reanudar')}
         error={error}
         ocupado={ocupado}
         alEnviar={(c) => conContrasena(c, () => (agotado ? entregar(true) : setFase('examen')))}
@@ -270,22 +281,19 @@ export default function App() {
     return (
       <Tarjeta>
         <p className="antetitulo">{examen.id}</p>
-        <h1>Examen terminado</h1>
-        {entregado.automatica && <Aviso tipo="alerta">Se acabó el tiempo: el examen se cerró automáticamente.</Aviso>}
-        <Aviso tipo="alerta">
-          Te falta un paso: <strong>sube el fichero descargado a la tarea de Teams</strong> del examen.
-          Hasta que no lo subas, tu examen no está entregado.
-        </Aviso>
-        <p>Se ha descargado <code>{nombreFichero(examen, estado.codigo)}</code>, normalmente en tu carpeta de Descargas.</p>
+        <h1>{t('terminado')}</h1>
+        {entregado.automatica && <Aviso tipo="alerta">{t('seAcaboTiempo')}</Aviso>}
+        <Aviso tipo="alerta"><Rico texto={t('faltaPaso')} /></Aviso>
+        <p><Rico texto={t('seHaDescargado', { f: nombreFichero(examen, estado.codigo) })} /></p>
         <div className="navegacion">
-          <button className="boton primario" onClick={() => descargar(nombreFichero(examen, estado.codigo), entregado.md)}>Descargar de nuevo</button>
-          <button className="boton discreto" onClick={() => { setError(null); setReabrir(true); }}>Reabrir (profesor)</button>
+          <button className="boton primario" onClick={() => descargar(nombreFichero(examen, estado.codigo), entregado.md)}>{t('descargarDeNuevo')}</button>
+          <button className="boton discreto" onClick={() => { setError(null); setReabrir(true); }}>{t('reabrirProfesor')}</button>
         </div>
         {reabrir && (
           <PedirContrasena
-            titulo="Reabrir examen"
-            texto={<p>{restante > 0 ? <>Quedan <strong>{formatoReloj(restante)}</strong>. El alumno podrá seguir y tendrá que volver a entregar.</> : 'El tiempo del examen está agotado: no se puede reabrir.'}</p>}
-            boton="Reabrir"
+            titulo={t('reabrirTitulo')}
+            texto={<p>{restante > 0 ? <Rico texto={t('reabrirTexto', { t: formatoReloj(restante) })} /> : t('reabrirAgotado')}</p>}
+            boton={t('reabrir')}
             error={error}
             ocupado={ocupado}
             alEnviar={(c) => restante > 0 ? conContrasena(c, () => {
@@ -293,8 +301,8 @@ export default function App() {
               setBloqueado(false);
               setReabrir(false);
               setFase('examen');
-            }) : setError('Tiempo agotado.')}
-            secundario={<button className="boton discreto" onClick={() => setReabrir(false)}>Cancelar</button>}
+            }) : setError(t('errTiempoAgotado'))}
+            secundario={<button className="boton discreto" onClick={() => setReabrir(false)}>{t('cancelar')}</button>}
           />
         )}
       </Tarjeta>
@@ -315,12 +323,12 @@ export default function App() {
       />
       {bloqueado && (
         <PedirContrasena
-          titulo="Examen bloqueado"
+          titulo={t('bloqueadoTitulo')}
           texto={<>
-            <p>Has salido del examen (cambio de ventana, de pestaña o de pantalla completa).</p>
-            <p>Llama al profesor para continuar. El tiempo sigue corriendo: <strong>{formatoReloj(restante)}</strong></p>
+            <p>{t('bloqueadoTexto')}</p>
+            <p><Rico texto={t('bloqueadoLlama', { t: formatoReloj(restante) })} /></p>
           </>}
-          boton="Desbloquear"
+          boton={t('desbloquear')}
           error={error}
           ocupado={ocupado}
           alEnviar={(c) => conContrasena(c, () => setBloqueado(false))}

@@ -174,3 +174,22 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, .editor-codig
 .tabla-puntos td { border-bottom: 1px solid var(--borde); padding: 8px 4px; font-size: 0.95rem; }
 .tabla-puntos td:nth-child(2) { color: var(--texto-suave); white-space: nowrap; }
 .tabla-puntos td:last-child { text-align: right; white-space: nowrap; }
+
+/* ── Idiomas y ajuste de línea ────────────────────────────────── */
+.selector-idioma { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 6px; }
+.cabecera .selector-idioma { margin: 0; }
+.boton-idioma {
+  font: inherit; font-size: 0.8rem; padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--borde); background: var(--superficie); color: var(--texto-suave);
+}
+.boton-idioma.activo { background: var(--primario-suave); border-color: var(--primario); color: var(--primario); font-weight: 600; }
+.barra-traduccion {
+  display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  margin-top: 10px; padding: 8px 12px; border-radius: var(--radio); background: var(--primario-suave);
+  font-size: 0.85rem; color: var(--texto);
+}
+.barra-traduccion .boton { padding: 4px 12px; font-size: 0.82rem; color: var(--primario); }
+/* Sin barra horizontal: el texto largo se parte en vez de salirse de la ventana. */
+.texto-libre { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; }
+.editor-codigo .cm-scroller { overflow-x: hidden; }
+.editor-codigo .cm-content { white-space: pre-wrap; overflow-wrap: anywhere; }

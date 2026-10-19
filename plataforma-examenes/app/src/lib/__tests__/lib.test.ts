@@ -2,7 +2,9 @@
 import { ordenAlumno } from '../barajar';
 import { abrirPaquete, CodigoNoValido, codigoValido, contrasenaCorrecta, formatear, normalizar, semilla } from '../cripto';
 import { formatoPuntos, generarMd, nombreFichero, respondida } from '../entrega';
+import { traducir } from '../i18n';
 import { desfaseDe } from '../receptor';
+import { textosPregunta, traduccionDe } from '../traducciones';
 import type { Estado, Examen, Paquete } from '../tipos';
 import datos from './paquete-python.json';
 
@@ -210,5 +212,47 @@ describe('reloj del receptor', () => {
     // El alumno atrasa su equipo una hora para ganar tiempo.
     const desfase = desfaseDe(Date.now() + 3_600_000, Date.now())!;
     expect(Math.round(desfase / 60_000)).toBe(60);
+  });
+});
+
+describe('idiomas', () => {
+  const examen = datos.examen as unknown as Examen;
+  const estado: Estado = {
+    id: examen.id, loc: 'x', codigo: datos.codigos[0].toLowerCase(), inicio: Date.UTC(2026, 9, 5, 7, 0), desfase: 0,
+    marcadas: [], actual: 0, entregado: null, respuestas: { A1: { valor: 'a' } },
+  };
+  const conTraduccion: Examen = {
+    ...examen,
+    traducciones: { en: { sha256: 'abc123', preguntas: { A1: { enunciado: 'What is a markup language?', opciones: { a: 'One' } } } } },
+  };
+
+  it('todos los diccionarios tienen las mismas claves y los mismos marcadores', () => {
+    const marcadores = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort().join();
+    for (const clave of ['norma1', 'hasRespondido', 'reabrirTexto', 'errNoExiste', 'puntosN'] as const) {
+      const es = marcadores(traducir('es', clave));
+      for (const i of ['en', 'fr', 'tr'] as const) expect(marcadores(traducir(i, clave))).toBe(es);
+    }
+    for (const i of ['en', 'fr', 'tr'] as const) expect(traducir(i, 'entrar')).not.toBe('');
+  });
+  it('sustituye los marcadores', () => {
+    expect(traducir('fr', 'respondidasDe', { a: 3, b: 10 })).toBe('3 sur 10 répondues');
+  });
+  it('usa la traducción si existe y el original si no', () => {
+    const p = examen.partes[0].preguntas[0];
+    expect(traduccionDe(conTraduccion, 'es')).toBeUndefined();
+    expect(traduccionDe(conTraduccion, 'fr')).toBeUndefined();
+    const t = textosPregunta(p, traduccionDe(conTraduccion, 'en'));
+    expect(t.enunciado).toBe('What is a markup language?');
+    expect(t.opcion('a', 'Original')).toBe('One');
+    expect(t.opcion('b', 'Original b')).toBe('Original b');
+    expect(textosPregunta(p, undefined).enunciado).toBe(p.enunciado);
+  });
+  it('el .md deja el idioma y la huella, con el enunciado en español', () => {
+    const md = generarMd(conTraduccion, estado, Date.UTC(2026, 9, 5, 8, 0), false, 'en');
+    expect(md).toContain('idioma_examen: en');
+    expect(md).toContain('traduccion_sha256: abc123');
+    expect(md).toContain('inglés');
+    expect(md).not.toContain('What is a markup language?');
+    expect(generarMd(examen, estado, Date.UTC(2026, 9, 5, 8, 0), false)).toContain('idioma_examen: es');
   });
 });
