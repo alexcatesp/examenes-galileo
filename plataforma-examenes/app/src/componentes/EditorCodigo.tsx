@@ -20,7 +20,7 @@ import { useEffect, useRef } from 'react';
  * etiquetas: el examen mide lo que el alumno sabe escribir, no lo que el editor
  * le corrige.
  */
-const RESALTADO = HighlightStyle.define([
+export const RESALTADO = HighlightStyle.define([
   { tag: [t.comment, t.lineComment, t.blockComment], color: '#6b7280', fontStyle: 'italic' },
   { tag: [t.keyword, t.controlKeyword, t.moduleKeyword, t.operatorKeyword], color: '#7a4fd0' },
   { tag: [t.tagName, t.heading], color: '#1f5fbf' },
@@ -38,7 +38,7 @@ const RESALTADO = HighlightStyle.define([
 type Cargador = () => Promise<LanguageSupport | ReturnType<typeof StreamLanguage.define>>;
 
 // Carga perezosa: cada lenguaje va en su propio fragmento del bundle.
-const LENGUAJES: Record<string, Cargador> = {
+export const LENGUAJES: Record<string, Cargador> = {
   html: async () => (await import('@codemirror/lang-html')).html({ autoCloseTags: false }),
   css: async () => (await import('@codemirror/lang-css')).css(),
   javascript: async () => (await import('@codemirror/lang-javascript')).javascript(),
@@ -62,7 +62,7 @@ export const ANCHO_TAB = 4;
  * de una instrucción. Solo si hay varias líneas seleccionadas sangra el bloque.
  * (`indentWithTab` sangraba siempre la línea entera.)
  */
-const tabulador: StateCommand = (objetivo) => {
+export const tabulador: StateCommand = (objetivo) => {
   const { state, dispatch } = objetivo;
   const variasLineas = state.selection.ranges.some(
     (r) => !r.empty && state.doc.lineAt(r.from).number !== state.doc.lineAt(r.to).number,

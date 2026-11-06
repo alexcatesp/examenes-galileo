@@ -193,3 +193,59 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, .editor-codig
 .texto-libre { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; }
 .editor-codigo .cm-scroller { overflow-x: hidden; }
 .editor-codigo .cm-content { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ── Editor con aspecto de IDE y paneles de código ────────────── */
+.pregunta.ancha { max-width: none; }
+.ide { display: flex; flex-direction: column; border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; background: var(--superficie); margin-top: 6px; }
+.ide-pestanas { display: flex; align-items: flex-end; gap: 12px; padding: 4px 8px 0; background: #e9edf3; border-bottom: 1px solid var(--borde); min-height: 36px; }
+.ide-pestana {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 0.88rem; font-weight: 600;
+  background: var(--superficie); border: 1px solid var(--borde); border-bottom: 0; border-radius: 6px 6px 0 0; position: relative; top: 1px;
+}
+.ide-icono { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; background: #d9730d; color: #fff; font-size: 0.7rem; font-weight: 800; }
+.ide-ayudas { margin: 0 0 8px auto; font-size: 0.75rem; color: var(--ok); font-weight: 600; }
+.ide .ide-editor.editor-codigo { margin-top: 0; border: 0; border-radius: 0; }
+.ide .ide-editor .cm-editor, .ide .ide-editor .cm-scroller { min-height: 300px; }
+.ide .ide-editor .cm-editor { max-height: 58vh; }
+.ide .cm-gutters { background: #f4f6f9; color: #8a93a3; border-right: 1px solid var(--borde); }
+.ide-estado { display: flex; gap: 22px; padding: 3px 12px; background: #2f5f9e; color: #fff; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.ide-estado .con-errores { font-weight: 700; color: #ffd6d2; }
+.solo-lectura .cm-editor { background: #f8f9fb; }
+.solo-lectura .cm-cursor { display: none; }
+
+.ide-problemas { border-top: 1px solid var(--borde); background: var(--superficie); max-height: 150px; overflow-y: auto; }
+.ide-problemas-titulo { position: sticky; top: 0; padding: 4px 12px; font-size: 0.78rem; font-weight: 700; background: #eef1f6; border-bottom: 1px solid var(--borde); }
+.ide-contador { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--superficie); border: 1px solid var(--borde); font-weight: 600; }
+.ide-sin-problemas { margin: 0; padding: 8px 12px; font-size: 0.85rem; color: var(--texto-suave); }
+.ide-problemas ul { list-style: none; margin: 0; padding: 0; }
+.ide-problema { display: flex; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 0.85rem; padding: 4px 12px; border: 0; border-bottom: 1px solid var(--borde); background: none; cursor: pointer; }
+.ide-problema:hover { background: var(--superficie-2); }
+.ide-problema-icono { flex: none; width: 1.2em; }
+.ide-problema.error .ide-problema-icono { color: var(--peligro); }
+.ide-problema.warning .ide-problema-icono { color: var(--ambar); }
+.ide-problema-texto { flex: 1; }
+.ide-problema-linea { flex: none; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+
+.ayuda-java { max-width: 420px; font-size: 0.85rem; }
+.ayuda-java-miembro + .ayuda-java-miembro { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--borde); }
+.ayuda-java code { font-weight: 700; word-break: break-word; }
+.ayuda-java p { margin: 4px 0 0; }
+.ayuda-java small { display: block; margin-top: 8px; color: var(--texto-suave); }
+
+.paneles { display: grid; gap: 14px; margin-top: 8px; }
+.paneles > div { min-width: 0; }
+.paneles-doble { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'izq der' 'pie pie'; }
+.paneles-doble .panel-izq { grid-area: izq; }
+.paneles-doble .panel-der { grid-area: der; }
+.paneles-doble .panel-pie { grid-area: pie; }
+.paneles-referencia { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.paneles-referencia .panel-der .texto-libre { min-height: 380px; height: calc(100% - 28px); }
+.paneles .panel-izq .ide { margin-top: 0; }
+.panel-der > .ide { margin-top: 0; }
+.ide-consola { margin-top: 12px; border-radius: var(--radio); overflow: hidden; background: #1e2430; color: #e8ecf2; }
+.ide-consola-titulo { padding: 4px 12px; font-size: 0.78rem; font-weight: 700; background: #2a3140; }
+.ide-consola pre { margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 0.82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .paneles-doble, .paneles-referencia { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
+  .paneles-doble .panel-izq, .paneles-doble .panel-der, .paneles-doble .panel-pie { grid-area: auto; }
+}

@@ -7,6 +7,28 @@ export interface Opcion {
   texto: string;
 }
 
+/**
+ * Cómo se presenta el editor de una pregunta de código o de desarrollo. Sin él se usa el editor sencillo.
+ *  · `ide`        un único editor con aspecto de IDE (pestaña con el fichero, números de línea, barra de estado).
+ *                 Con `ayudas` sugiere miembros con ayuda en español y subraya los errores.
+ *  · `doble`      código original (solo lectura) a la izquierda, editor de la respuesta a la derecha y, debajo,
+ *                 un cuadro de texto para las respuestas escritas.
+ *  · `referencia` código original (solo lectura) a la izquierda —y, si `consola`, la salida del programa
+ *                 debajo— y un cuadro de texto para las respuestas a la derecha.
+ * El primer bloque de código del enunciado es el «código original»; el segundo, la consola.
+ */
+export interface PerfilEditor {
+  perfil: 'ide' | 'doble' | 'referencia';
+  /** Nombre del fichero en la pestaña («Correo.java»). */
+  fichero?: string;
+  /** Sugerencias de miembros y errores subrayados. Solo con perfil `ide`. */
+  ayudas?: boolean;
+  /** Muestra el segundo bloque de código del enunciado como consola. */
+  consola?: boolean;
+  /** Sangría automática y cierre de llaves, paréntesis y comillas, como en un IDE. */
+  autoEscritura?: boolean;
+}
+
 export interface Pregunta {
   id: string;
   item?: string | null;
@@ -20,6 +42,8 @@ export interface Pregunta {
   lenguaje?: string | null;
   /** Código puro (marca explícita en el examen modelo): solo entonces el editor dice «Tu código». */
   soloCodigo?: boolean;
+  /** Presentación del editor; sin ella, el editor sencillo de siempre. */
+  editor?: PerfilEditor;
   enunciado: string;
   opciones: Opcion[];
 }

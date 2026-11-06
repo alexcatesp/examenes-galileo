@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type KeyboardEvent as TeclaReact } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { LETRAS, type PreguntaVista } from '../lib/barajar';
 import { formatear } from '../lib/cripto';
 import { formatoPuntos, respondida } from '../lib/entrega';
@@ -6,26 +6,16 @@ import { useIdioma } from '../lib/i18n';
 import { renderizar, renderizarLinea } from '../lib/markdown';
 import { textosPregunta, traduccionDe } from '../lib/traducciones';
 import type { Estado, Examen, Respuesta } from '../lib/tipos';
-import { ANCHO_TAB, EditorCodigo } from './EditorCodigo';
+import { EditorCodigo } from './EditorCodigo';
+import { EditorIDE } from './EditorIDE';
+import { PanelesCodigo } from './PanelesCodigo';
+import { sangrarConTab } from './sangria';
+import { sacarBloques, type BloqueCodigo } from '../lib/bloques';
 import { SelectorIdioma } from './Pantallas';
 import { Rico } from './Rico';
 
 const NIVEL_CLASE: Record<string, string> = { Básico: 'basico', Intermedio: 'intermedio', Avanzado: 'avanzado' };
 const NIVEL_CLAVE = { Básico: 'nivelBasico', Intermedio: 'nivelIntermedio', Avanzado: 'nivelAvanzado' } as const;
-
-/** Tab en un textarea inserta espacios hasta el siguiente tope de 4 columnas, igual que el editor de código,
- *  en vez de saltar al siguiente campo.
- *  Con Mayús+Tab o Ctrl/Alt/Meta se conserva el comportamiento normal para poder salir con el teclado. */
-function sangrarConTab(e: TeclaReact<HTMLTextAreaElement>, alCambiar: (v: string) => void) {
-  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return;
-  e.preventDefault();
-  const t = e.currentTarget;
-  const { selectionStart: a, selectionEnd: b, value } = t;
-  const columna = a - (value.lastIndexOf('\n', a - 1) + 1);
-  const espacios = ' '.repeat(ANCHO_TAB - (columna % ANCHO_TAB));
-  alCambiar(value.slice(0, a) + espacios + value.slice(b));
-  requestAnimationFrame(() => t.setSelectionRange(a + espacios.length, a + espacios.length));
-}
 
 export function horaDe(ms: number): string {
   return new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -72,6 +62,12 @@ export function VistaExamen({ examen, vista, estado, restante, alResponder, alMo
   const actual = Math.min(estado.actual, vista.length - 1);
   const p = vista[actual];
   const textos = textosPregunta(p, original[p.id] ? undefined : trad);
+  // Perfiles con paneles: el primer bloque de código del enunciado (y el segundo, si es consola) va a su panel.
+  const perfil = p.editor;
+  const conPaneles = perfil?.perfil === 'doble' || perfil?.perfil === 'referencia';
+  const { texto: textoEnunciado, bloques } = conPaneles
+    ? sacarBloques(textos.enunciado, perfil?.consola ? 2 : 1)
+    : { texto: textos.enunciado, bloques: [] };
   const respondidas = vista.filter((q) => respondida(estado.respuestas[q.id])).length;
   const partes = useMemo(() => {
     const grupos: { id: string; titulo: string; items: { q: PreguntaVista; i: number }[] }[] = [];
@@ -139,7 +135,7 @@ export function VistaExamen({ examen, vista, estado, restante, alResponder, alMo
         </div>
       </nav>
 
-      <main className="pregunta" key={p.id}>
+      <main className={`pregunta ${perfil ? 'ancha' : ''}`} key={p.id}>
         <div className="pregunta-meta">
           <span>{tituloParte(p.parteId, p.parteTitulo)}</span>
           <span className="pregunta-num">{t('pregunta')} {p.parteId}{p.numero}</span>
@@ -163,10 +159,11 @@ export function VistaExamen({ examen, vista, estado, restante, alResponder, alMo
         <article
           className="enunciado"
           lang={original[p.id] ? 'es' : idioma}
-          dangerouslySetInnerHTML={{ __html: renderizar(textos.enunciado) }}
+          dangerouslySetInnerHTML={{ __html: renderizar(textoEnunciado) }}
         />
         <ZonaRespuesta
           pregunta={p}
+          bloques={bloques}
           textoOpcion={textos.opcion}
           respuesta={estado.respuestas[p.id]}
           alResponder={(r) => alResponder(p.id, r)}
@@ -203,13 +200,41 @@ export function VistaExamen({ examen, vista, estado, restante, alResponder, alMo
   );
 }
 
-function ZonaRespuesta({ pregunta: p, textoOpcion, respuesta, alResponder }: {
+function ZonaRespuesta({ pregunta: p, bloques, textoOpcion, respuesta, alResponder }: {
   pregunta: PreguntaVista;
+  bloques: BloqueCodigo[];
   textoOpcion: (letra: string, original: string) => string;
   respuesta: Respuesta | undefined;
   alResponder: (r: Respuesta) => void;
 }) {
   const { t } = useIdioma();
+  const perfil = p.editor;
+  if (perfil && (perfil.perfil === 'doble' || perfil.perfil === 'referencia')) {
+    return (
+      <PanelesCodigo
+        perfil={perfil}
+        bloques={bloques}
+        id={p.id}
+        lenguaje={p.lenguaje ?? 'java'}
+        respuesta={respuesta}
+        alResponder={alResponder}
+      />
+    );
+  }
+  if (perfil?.perfil === 'ide') {
+    return (
+      <div className="respuesta-codigo">
+        <EditorIDE
+          key={p.id}
+          valor={typeof respuesta?.valor === 'string' ? respuesta.valor : ''}
+          fichero={perfil.fichero ?? 'Programa.java'}
+          ayudas={perfil.ayudas}
+          autoEscritura={perfil.autoEscritura}
+          alCambiar={(valor) => alResponder({ valor, explicacion: respuesta?.explicacion })}
+        />
+      </div>
+    );
+  }
   if (p.tipo === 'unica' || p.tipo === 'multiple') {
     const marcadas = new Set(Array.isArray(respuesta?.valor) ? respuesta.valor : respuesta?.valor ? [respuesta.valor] : []);
     const alternar = (letra: string) => {

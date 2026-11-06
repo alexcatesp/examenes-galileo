@@ -65,6 +65,11 @@ Conviene decirlo claro:
   solo si la pregunta lleva la marca explícita `<!-- respuesta: codigo(java) -->` (código
   puro); en cualquier otro caso, como puede mezclar teoría y código, se llama **«Tu
   respuesta»**.
+- **Perfiles de editor** (opcional, pregunta a pregunta): un editor con aspecto de IDE (`ide`), con
+  sangría y cierre de llaves automáticos y, si lo decides, con **sugerencias de métodos en español y
+  errores subrayados** (`ayudas`); un par «código original | tu código» (`doble`); o «código original
+  y consola | respuestas» (`referencia`). Se asignan con `preparar_examen.py editores` (ver el README).
+  Por defecto el editor sigue sin ayudas.
 - Todos los cuadros de respuesta **ajustan las líneas largas** (no hay barra horizontal). En
   el editor y en los cuadros de texto, **Tab** inserta espacios (tope de 4 columnas) en el punto donde estás
   (sirve para alinear un comentario tras una instrucción) y **Intro** no añade sangría: lo

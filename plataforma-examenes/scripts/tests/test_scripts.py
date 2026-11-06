@@ -465,3 +465,69 @@ def test_horario_teorico_fija_inicio_fin_y_duracion():
     assert any("posterior" in e for e in errores)
     with pytest.raises(preparar_examen.ErrorExamen):
         preparar_examen.momento_ms("20/10/2026 8:30")
+
+
+def test_un_ce_puede_tener_varios_apartados():
+    q = {"id": "C4", "ce": ["h", "i"], "tipo": "texto", "opciones": [],
+         "enunciado": "**(i)** traza; **(h)** constructor; **(h)** corrige."}
+    r = preparar_examen.renumerar_apartados(q)
+    assert r["enunciado"] == "**(a)** traza; **(b)** constructor; **(c)** corrige."
+    assert r["apartados"] == {"a": "i", "b": "h", "c": "h"}
+
+
+BLOQUE = "```java\nint x;\n```"
+
+
+def _pregunta(tipo="codigo", editor=None, enunciado=None):
+    return {"id": "B3", "tipo": tipo, "lenguaje": "java", "enunciado": enunciado or f"Mira:\n\n{BLOQUE}\n", "editor": editor}
+
+
+def test_validar_editor_acepta_los_tres_perfiles():
+    assert preparar_examen.validar_editor(_pregunta(editor={"perfil": "ide", "ayudas": True, "fichero": "A.java"})) == []
+    assert preparar_examen.validar_editor(_pregunta(editor={"perfil": "doble"})) == []
+    q = _pregunta("texto", {"perfil": "referencia", "consola": True}, f"{BLOQUE}\n\n{BLOQUE}")
+    assert preparar_examen.validar_editor(q) == []
+
+
+@pytest.mark.parametrize("editor, tipo, enunciado, fragmento", [
+    ({"perfil": "raro"}, "codigo", None, "no válido"),
+    ({"perfil": "ide", "x": 1}, "codigo", None, "campos desconocidos"),
+    ({"perfil": "doble", "ayudas": True}, "codigo", None, "solo se usa con el perfil «ide»"),
+    ({"perfil": "doble", "consola": True}, "codigo", None, "solo se usa con el perfil «referencia»"),
+    ({"perfil": "doble"}, "texto", None, "necesita una pregunta de tipo codigo"),
+    ({"perfil": "referencia"}, "unica", None, "texto o codigo"),
+    ({"perfil": "referencia", "consola": True}, "texto", f"Solo uno:\n\n{BLOQUE}\n", "necesita 2 bloque(s)"),
+    ({"perfil": "doble"}, "codigo", "Sin código", "necesita 1 bloque(s)"),
+])
+def test_validar_editor_rechaza(editor, tipo, enunciado, fragmento):
+    errores = preparar_examen.validar_editor(_pregunta(tipo, editor, enunciado))
+    assert any(fragmento in e for e in errores), errores
+
+
+def test_quitar_numeros_solo_si_todas_las_lineas_los_llevan():
+    con = "1  import x;\n2\n3  class A {\n10     int y;"
+    assert preparar_examen.quitar_numeros_de_linea(con) == "import x;\n\nclass A {\n    int y;"
+    sin = "int x = 1;\n2  int y;"
+    assert preparar_examen.quitar_numeros_de_linea(sin) == sin
+
+
+def test_cli_editores_aplica_perfiles_y_los_valida(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(preparar_examen, "PRIVADO", tmp_path)
+    (tmp_path / "X").mkdir()
+    examen = {"partes": [{"id": "C", "titulo": "C", "preguntas": [
+        {"id": "C2", "tipo": "codigo", "lenguaje": "java", "opciones": [], "enunciado": "Lee:\n\n```java\n1  int a;\n2  int b;\n```\n"},
+    ]}]}
+    (tmp_path / "X" / "examen.json").write_text(json.dumps(examen), encoding="utf-8")
+    perfiles = tmp_path / "p.json"
+    perfiles.write_text(json.dumps({"C2": {"tipo": "texto", "lenguaje": None, "quitarNumeros": True,
+                                           "editor": {"perfil": "referencia"}}}), encoding="utf-8")
+    assert preparar_examen.main(["editores", "X", str(perfiles)]) == 0
+    q = json.loads((tmp_path / "X" / "examen.json").read_text(encoding="utf-8"))["partes"][0]["preguntas"][0]
+    assert q["tipo"] == "texto" and q["editor"] == {"perfil": "referencia"}
+    assert "```java\nint a;\nint b;\n```" in q["enunciado"]
+    # perfil inválido: no se escribe nada y sale con error
+    perfiles.write_text(json.dumps({"C2": {"editor": {"perfil": "doble", "ayudas": True}}}), encoding="utf-8")
+    assert preparar_examen.main(["editores", "X", str(perfiles)]) == 1
+    # pregunta inexistente
+    perfiles.write_text(json.dumps({"Z9": {"editor": {"perfil": "ide"}}}), encoding="utf-8")
+    assert preparar_examen.main(["editores", "X", str(perfiles)]) == 1

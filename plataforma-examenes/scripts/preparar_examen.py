@@ -4,6 +4,8 @@
 Flujo:
   1. extraer  examen-modelo-RAx.md  → .privado/<ID>/examen.json  (versión alumno, editable)
   2. (revisar/editar examen.json: tipos de respuesta, enunciados)
+     editores <ID> perfiles.json   → da a las preguntas de código su perfil de editor
+                                     (ide con ayudas · doble · referencia con consola)
   3. cifrar   <ID>                  → examenes/<ID>.json (público, cifrado)
                                      + .privado/<ID>/codigos.csv y ficha-profesor.md
   4. verificar <ID> <CODIGO>        → comprueba que un código abre el paquete
@@ -44,6 +46,10 @@ RE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,60}$")
 RE_SEGURO = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 CONVOCATORIAS = ("ev_continua", "1a_final", "2a_final")
 CAMPOS_META = ("grupo", "siglas", "cursoEscolar", "convocatoria")
+# Perfiles de editor (ver PerfilEditor en app/src/lib/tipos.ts).
+PERFILES_EDITOR = ("ide", "doble", "referencia")
+CAMPOS_EDITOR = ("perfil", "fichero", "ayudas", "consola", "autoEscritura")
+RE_BLOQUE = re.compile(r"^```[\w+-]*[ \t]*\n[\s\S]*?\n```[ \t]*$", re.M)
 
 
 class ErrorExamen(Exception):
@@ -190,6 +196,36 @@ def validar(examen: dict) -> list[str]:
                     errores.append(f"{qid}: un test necesita ≥2 opciones con letras distintas")
             elif q.get("opciones"):
                 errores.append(f"{qid}: tiene opciones pero su tipo es «{q.get('tipo')}»")
+            if q.get("editor") is not None:
+                errores += [f"{qid}: {e}" for e in validar_editor(q)]
+    return errores
+
+
+def validar_editor(q: dict) -> list[str]:
+    """Errores del perfil de editor de una pregunta (vacío si está bien)."""
+    ed = q["editor"]
+    if not isinstance(ed, dict):
+        return ["editor: debe ser un objeto"]
+    errores: list[str] = []
+    sobran = sorted(set(ed) - set(CAMPOS_EDITOR))
+    if sobran:
+        errores.append(f"editor: campos desconocidos {', '.join(sobran)}")
+    perfil = ed.get("perfil")
+    if perfil not in PERFILES_EDITOR:
+        return errores + [f"editor.perfil: «{perfil}» no válido ({', '.join(PERFILES_EDITOR)})"]
+    if q.get("tipo") not in ("codigo", "texto") or (perfil in ("ide", "doble") and q.get("tipo") != "codigo"):
+        errores.append(f"editor «{perfil}» necesita una pregunta de tipo {'texto o codigo' if perfil == 'referencia' else 'codigo'}")
+    if ed.get("ayudas") and perfil != "ide":
+        errores.append("editor.ayudas solo se usa con el perfil «ide»")
+    if ed.get("consola") and perfil != "referencia":
+        errores.append("editor.consola solo se usa con el perfil «referencia»")
+    if perfil != "ide":
+        bloques = len(RE_BLOQUE.findall(str(q.get("enunciado", ""))))
+        necesarios = 2 if ed.get("consola") else 1
+        if bloques < necesarios:
+            errores.append(f"editor «{perfil}»: el enunciado necesita {necesarios} bloque(s) de código y tiene {bloques}")
+    if q.get("lenguaje") and q["lenguaje"] not in LENGUAJES:
+        errores.append(f"lenguaje «{q['lenguaje']}» no válido")
     return errores
 
 
@@ -258,6 +294,62 @@ def cmd_extraer(args: argparse.Namespace) -> int:
     return 0
 
 
+def quitar_numeros_de_linea(codigo: str) -> str:
+    """Quita la numeración a mano («1  int x;», «10 int y;») de un bloque donde TODAS las líneas la llevan.
+
+    El editor ya pinta sus números de línea; los del enunciado se usan en el papel.
+    """
+    lineas = codigo.split("\n")
+    con_numero = [bool(re.fullmatch(r"\d{1,2} {0,2}", ln[:3])) for ln in lineas if ln.strip()]
+    if not con_numero or not all(con_numero):
+        return codigo
+    return "\n".join("" if ln.strip().isdigit() else ln[3:] for ln in lineas)
+
+
+def cmd_editores(args: argparse.Namespace) -> int:
+    """Aplica a las preguntas de .privado/<ID>/examen.json los perfiles de editor de un fichero JSON.
+
+    Formato: {"B3": {"tipo": "codigo", "lenguaje": "java", "quitarNumeros": true,
+                     "editor": {"perfil": "doble", "fichero": "Presupuesto.java"}}, …}
+    """
+    origen = PRIVADO / args.examen / "examen.json"
+    examen = json.loads(origen.read_text(encoding="utf-8"))
+    cambios = json.loads(Path(args.perfiles).read_text(encoding="utf-8"))
+    preguntas = {q["id"]: q for p in examen["partes"] for q in p["preguntas"]}
+    desconocidas = sorted(set(cambios) - set(preguntas))
+    if desconocidas:
+        raise ErrorExamen(f"el fichero de perfiles nombra preguntas que no existen: {', '.join(desconocidas)}")
+    for qid, cambio in cambios.items():
+        q = preguntas[qid]
+        for campo in ("tipo", "lenguaje"):
+            if campo in cambio:
+                q[campo] = cambio[campo]
+        if cambio.get("quitarNumeros"):
+            hasta = 2 if (cambio.get("editor") or {}).get("consola") else 1
+            vistos = 0
+
+            def cambiar(m: re.Match) -> str:
+                nonlocal vistos
+                vistos += 1
+                if vistos > hasta:
+                    return m.group(0)
+                return m.group(1) + quitar_numeros_de_linea(m.group(2)) + m.group(3)
+
+            q["enunciado"] = re.sub(r"(^```[\w+-]*[ \t]*\n)([\s\S]*?)(\n```[ \t]*$)", cambiar, q["enunciado"], flags=re.M)
+        if "editor" in cambio:
+            q["editor"] = cambio["editor"]
+    errores = [f"{q['id']}: {e}" for q in preguntas.values() if q.get("editor") is not None for e in validar_editor(q)]
+    if errores:
+        raise ErrorExamen("perfiles de editor no válidos:\n  " + "\n  ".join(errores))
+    origen.write_text(json.dumps(examen, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for qid in cambios:
+        q = preguntas[qid]
+        ed = q.get("editor") or {}
+        extra = ", ".join(f"{k}={v}" for k, v in ed.items() if k != "perfil")
+        print(f"{qid:<4} {q['tipo']}({q.get('lenguaje') or '-'})  editor: {ed.get('perfil', 'sencillo')}" + (f" ({extra})" if extra else ""))
+    return 0
+
+
 RE_APARTADO = re.compile(r"\*\*\(([a-z])\)\*\*")
 
 
@@ -267,7 +359,8 @@ def renumerar_apartados(pregunta: dict) -> dict:
     en «apartados» ({"a": "a", "b": "c", "c": "f"}); el orden de «ce» no cambia."""
     letras = RE_APARTADO.findall(pregunta.get("enunciado", ""))
     ce = pregunta.get("ce") or []
-    if len(letras) < 2 or len(set(letras)) != len(letras) or not set(letras) <= set(ce):
+    # Un CE puede tener varios apartados (los de «apartados» se indexan por la letra nueva, no por la del CE).
+    if len(letras) < 2 or not set(letras) <= set(ce):
         return pregunta
     nuevas = iter("abcdefghijklmnopqrstuvwxyz")
     enunciado = RE_APARTADO.sub(lambda m: f"**({next(nuevas)})**", pregunta["enunciado"])
@@ -525,6 +618,11 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--regenerar", action="store_true", help="sobrescribe el paquete (invalida códigos)")
     c.add_argument("--iter", type=int, default=cripto.ITER_CODIGO, help=argparse.SUPPRESS)
     c.set_defaults(func=cmd_cifrar)
+
+    ed = sub.add_parser("editores", help="asigna a cada pregunta su perfil de editor (ide, doble, referencia)")
+    ed.add_argument("examen", help="ID del examen")
+    ed.add_argument("perfiles", help="JSON {pregunta: {tipo, lenguaje, quitarNumeros, editor{…}}}")
+    ed.set_defaults(func=cmd_editores)
 
     t = sub.add_parser("traducir", help="crea el esqueleto de una traducción (en, fr, tr) para traducirlo")
     t.add_argument("examen", help="ID del examen")
